@@ -10,22 +10,14 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
-const AVATAR_EMOJIS = [
-  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
-  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
-  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
-  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
-  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
-];
+const AVATAR_EMOJIS = [ '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤','🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡','🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏','🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛' ];
 
 export default function ScrumPointingApp() {
   const getRandomAvatar = () => AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
-
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('');
   const [role, setRole] = useState('Developer');
   const [selectedAvatar, setSelectedAvatar] = useState(getRandomAvatar());
-  const [emojiSearch, setEmojiSearch] = useState('');
   const [hasJoined, setHasJoined] = useState(false);
   const [storyTitle, setStoryTitle] = useState('');
   const [storyQueue, setStoryQueue] = useState([]);
@@ -37,11 +29,17 @@ export default function ScrumPointingApp() {
   const [participants, setParticipants] = useState([]);
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
-  const [messages, setMessages] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [error, setError] = useState('');
   const [width, height] = useWindowSize();
+
+  const isScrumMaster = role === 'Scrum Master';
+  const isDeveloper = role === 'Developer';
+  const isObserver = role === 'Observer';
+
+  const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
+  const votesCast = Object.keys(votes).filter(p => participantRoles[p] === 'Developer').length;
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars }) => {
       setParticipants(names);
@@ -50,11 +48,11 @@ export default function ScrumPointingApp() {
     });
 
     socket.on('userJoined', (user) => {
-      setMessages((prev) => [...prev, `🚪 ${user} joined the room`]);
+      console.log(`${user} joined`);
     });
 
     socket.on('userLeft', (user) => {
-      setMessages((prev) => [...prev, `👋 ${user} left the room`]);
+      console.log(`${user} left`);
     });
 
     socket.on('updateVotes', (updatedVotes) => {
@@ -114,8 +112,8 @@ export default function ScrumPointingApp() {
       return;
     }
     if (role === 'Scrum Master') {
-      const existingScrumMasters = participants.filter(p => participantRoles[p] === 'Scrum Master');
-      if (existingScrumMasters.length > 0) {
+      const existingSMs = participants.filter(p => participantRoles[p] === 'Scrum Master');
+      if (existingSMs.length > 0) {
         setError('There is already a Scrum Master in this room.');
         return;
       }
@@ -129,21 +127,11 @@ export default function ScrumPointingApp() {
     socket.emit('vote', { nickname, point });
   };
 
-  const revealVotes = () => {
-    socket.emit('revealVotes');
-  };
-
-  const endSession = () => {
-    socket.emit('endSession');
-  };
+  const revealVotes = () => socket.emit('revealVotes');
+  const endSession = () => socket.emit('endSession');
 
   const startSession = (title, index) => {
     socket.emit('startSession', { title, room });
-    setSessionActive(true);
-    setVotes({});
-    setVote(null);
-    setVotesRevealed(false);
-    setShowConfetti(false);
     setStoryQueue(storyQueue.filter((_, i) => i !== index));
   };
 
@@ -153,10 +141,6 @@ export default function ScrumPointingApp() {
       setStoryTitle('');
     }
   };
-
-  const isScrumMaster = role === 'Scrum Master';
-  const isDeveloper = role === 'Developer';
-  const filteredAvatars = AVATAR_EMOJIS.filter(e => e.includes(emojiSearch));
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
@@ -171,9 +155,8 @@ export default function ScrumPointingApp() {
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
-            <input type="text" placeholder="Search emoji..." value={emojiSearch} onChange={(e) => setEmojiSearch(e.target.value)} className="p-2 border rounded w-full mb-2" />
             <select className="p-2 border rounded w-full mb-2" value={selectedAvatar} onChange={(e) => setSelectedAvatar(e.target.value)}>
-              {filteredAvatars.map((emoji) => (
+              {AVATAR_EMOJIS.map((emoji) => (
                 <option key={emoji} value={emoji}>{emoji}</option>
               ))}
             </select>
@@ -206,20 +189,43 @@ export default function ScrumPointingApp() {
             {sessionActive && (
               <div>
                 <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
+
+                {isScrumMaster && !votesRevealed && (
+                  <>
+                    <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
+                      <p className="font-semibold mb-2">Voting Progress:</p>
+                      <progress className="w-full h-3 mb-2" value={votesCast} max={totalDevelopers}></progress>
+                      <ul className="text-sm">
+                        {participants
+                          .filter(p => participantRoles[p] === 'Developer')
+                          .map((p) => (
+                            <li key={p}>
+                              {participantAvatars[p] || '❓'} {p} — {votes[p] ? '✅ Voted' : '⏳ Waiting'}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                    <div className="flex justify-center gap-4 mt-4">
+                      <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>
+                      <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>End Session</button>
+                    </div>
+                  </>
+                )}
+
+                {isObserver && (
+                  <p className="text-blue-600 italic text-sm mt-4">👀 You are observing this session and cannot vote.</p>
+                )}
+
                 {isDeveloper && !vote && (
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
                     {POINT_OPTIONS.map((pt) => (
                       <button key={pt} className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition" onClick={() => castVote(pt)}>{pt}</button>
                     ))}
                   </div>
                 )}
+
                 {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
-                {isScrumMaster && (
-                  <div className="flex justify-center gap-4 mt-4">
-                    {!votesRevealed && <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>}
-                    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>End Session</button>
-                  </div>
-                )}
+
                 {votesRevealed && (
                   <>
                     {showConfetti && <Confetti width={width} height={height} />}
