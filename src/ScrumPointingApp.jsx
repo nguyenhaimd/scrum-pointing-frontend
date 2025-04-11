@@ -10,10 +10,17 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
-const AVATAR_EMOJIS = [ '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤','🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡','🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏','🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛' ];
+const AVATAR_EMOJIS = [
+  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
+  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
+  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
+  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
+];
 
 export default function ScrumPointingApp() {
   const getRandomAvatar = () => AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
+
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('');
   const [role, setRole] = useState('Developer');
@@ -31,6 +38,7 @@ export default function ScrumPointingApp() {
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [roomMessages, setRoomMessages] = useState([]);
   const [error, setError] = useState('');
   const [width, height] = useWindowSize();
 
@@ -48,11 +56,11 @@ export default function ScrumPointingApp() {
     });
 
     socket.on('userJoined', (user) => {
-      console.log(`${user} joined`);
+      setRoomMessages(prev => [...prev, `🔵 ${user} joined the room.`]);
     });
 
     socket.on('userLeft', (user) => {
-      console.log(`${user} left`);
+      setRoomMessages(prev => [...prev, `🔴 ${user} left the room.`]);
     });
 
     socket.on('updateVotes', (updatedVotes) => {
@@ -167,6 +175,25 @@ export default function ScrumPointingApp() {
           </div>
         ) : (
           <div>
+            <div className="mb-4 text-sm">
+              {roomMessages.length > 0 && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 text-sm mb-4 rounded">
+                  {roomMessages.map((msg, idx) => <div key={idx}>{msg}</div>)}
+                </div>
+              )}
+              <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
+                <h3 className="font-semibold mb-2">Users in this session:</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {participants.map((p) => (
+                    <div key={p} className="flex items-center gap-2">
+                      <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                      <span>{p} ({participantRoles[p]})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="text-left text-sm mb-4">
               <h3 className="font-semibold mb-1">Team Chat</h3>
               <div className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
