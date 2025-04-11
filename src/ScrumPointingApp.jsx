@@ -19,7 +19,6 @@ const AVATAR_EMOJIS = [
   '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
   '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
-
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
 export default function ScrumPointingApp() {
@@ -50,7 +49,7 @@ export default function ScrumPointingApp() {
   const isObserver = role === 'Observer';
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
-  const votesCast = Object.keys(votes).filter(p => participantRoles[p] === 'Developer').length;
+  const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
 
   const userStatus = hasJoined ? `${selectedAvatar} Logged in as ${nickname} (${role})` : '';
 
@@ -194,8 +193,24 @@ export default function ScrumPointingApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
-      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
 
+      {/* Emoji reaction floating animation */}
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+        {reactions.map((r) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: -80 }}
+            exit={{ opacity: 0 }}
+            className="text-center"
+          >
+            <div className="text-4xl">{r.emoji}</div>
+            <div className="text-xs text-gray-600">{r.sender}</div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
         {hasJoined && (
           <div className="mb-4 text-sm text-center text-blue-700 font-semibold">
             {selectedAvatar} Logged in as {nickname} ({role})
@@ -219,25 +234,9 @@ export default function ScrumPointingApp() {
           </div>
         ) : (
           <>
-            {hasJoined && (
-              <div className="flex gap-2 justify-center my-4 flex-wrap">
-                {REACTION_EMOJIS.map((emoji, index) => (
-                  <button key={index} className="text-2xl hover:scale-110 transition" onClick={() => sendReaction(emoji)}>{emoji}</button>
-                ))}
-              </div>
-            )}
-
-            <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-              {reactions.map((r) => (
-                <motion.div
-                  key={r.id}
-                  initial={{ opacity: 0, y: 0 }}
-                  animate={{ opacity: 1, y: -80 }}
-                  exit={{ opacity: 0 }}
-                  className="text-4xl"
-                >
-                  {r.emoji}
-                </motion.div>
+            <div className="flex gap-2 justify-center my-4 flex-wrap">
+              {REACTION_EMOJIS.map((emoji, index) => (
+                <button key={index} className="text-2xl hover:scale-110 transition" onClick={() => sendReaction(emoji)}>{emoji}</button>
               ))}
             </div>
 
@@ -304,9 +303,11 @@ export default function ScrumPointingApp() {
                     <div className="mt-6 bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold mb-2">Votes</h3>
                       <ul className="text-left inline-block">
-                        {Object.entries(votes).map(([user, pt]) => (
-                          <li key={user}><strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}</li>
-                        ))}
+                        {Object.entries(votes)
+                          .filter(([user]) => participantRoles[user] === 'Developer')
+                          .map(([user, pt]) => (
+                            <li key={user}><strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}</li>
+                          ))}
                       </ul>
                     </div>
                     {consensusPoints.length > 0 && (
