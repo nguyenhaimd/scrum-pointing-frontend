@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-
-// for use in local a testing only
-//const socket = io('http://localhost:4000');
+import Confetti from 'react-confetti';
+import { useWindowSize } from '@react-hook/window-size';
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
-  secure: true
+  secure: true,
 });
-
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
+const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
 
 export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('');
-  const [isScrumMaster, setIsScrumMaster] = useState(false);
+  const [role, setRole] = useState('Developer');
   const [hasJoined, setHasJoined] = useState(false);
   const [storyTitle, setStoryTitle] = useState('');
   const [storyQueue, setStoryQueue] = useState([]);
@@ -23,6 +22,7 @@ export default function ScrumPointingApp() {
   const [votes, setVotes] = useState({});
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [participants, setParticipants] = useState([]);
+  const [width, height] = useWindowSize();
 
   useEffect(() => {
     socket.on('startSession', (title) => {
@@ -98,7 +98,9 @@ export default function ScrumPointingApp() {
     socket.emit('endSession');
   };
 
-  const isScrumMasterUser = () => isScrumMaster || nickname.toLowerCase().includes('scrum');
+  const isScrumMaster = role === 'Scrum Master';
+  const isDeveloper = role === 'Developer';
+  const isObserver = role === 'Observer';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
@@ -118,22 +120,27 @@ export default function ScrumPointingApp() {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
             />
-            <label className="block mb-2 text-sm text-gray-600">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={isScrumMaster}
-                onChange={(e) => setIsScrumMaster(e.target.checked)}
-              />
-              I am the Scrum Master
-            </label>
+            <select
+              className="p-2 border rounded w-full mb-4"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              {ROLE_OPTIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
             <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onClick={join}>
               Join
             </button>
           </div>
         ) : (
           <>
-            {!sessionActive && isScrumMasterUser() && (
+            <h2 className="text-lg font-semibold text-gray-600 mb-2">
+              💬 Room: <span className="font-bold text-blue-800">{room}</span>
+            </h2>
+            {!sessionActive && isScrumMaster && (
               <div className="mb-6">
                 <input
                   className="p-2 border rounded w-full mb-2"
@@ -167,8 +174,7 @@ export default function ScrumPointingApp() {
             {sessionActive && (
               <div>
                 <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
-<h2 className="text-lg font-semibold text-gray-600 mb-2">💬 Room: <span className="font-bold text-blue-800">{room}</span></h2>
-                {!isScrumMasterUser() ? (
+                {isDeveloper ? (
                   vote ? (
                     <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>
                   ) : (
@@ -184,7 +190,7 @@ export default function ScrumPointingApp() {
                       ))}
                     </div>
                   )
-                ) : (
+                ) : isScrumMaster ? (
                   <div className="flex justify-center gap-4 mt-4">
                     {!votesRevealed && (
                       <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>
@@ -195,22 +201,27 @@ export default function ScrumPointingApp() {
                       End Session
                     </button>
                   </div>
+                ) : (
+                  <p className="italic text-gray-500">You are observing this session.</p>
                 )}
 
                 {votesRevealed && (
-                  <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-2">Votes</h3>
-                    <ul className="text-left inline-block">
-                      {Object.entries(votes).map(([user, pt]) => (
-                        <li key={user}>
-                          <strong>{user}</strong>: {pt}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <>
+                    <Confetti width={width} height={height} />
+                    <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-2">Votes</h3>
+                      <ul className="text-left inline-block">
+                        {Object.entries(votes).map(([user, pt]) => (
+                          <li key={user}>
+                            <strong>{user}</strong>: {pt}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
                 )}
 
-                {isScrumMasterUser() && (
+                {isScrumMaster && (
                   <div className="mt-6 text-left">
                     <h3 className="font-semibold mb-2">Voting Progress</h3>
                     <ul className="bg-gray-100 rounded p-3 text-sm">
@@ -230,7 +241,7 @@ export default function ScrumPointingApp() {
               </div>
             )}
 
-            {!sessionActive && !isScrumMasterUser() && (
+            {!sessionActive && !isScrumMaster && (
               <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
             )}
           </>
