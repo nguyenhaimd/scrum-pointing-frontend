@@ -12,7 +12,7 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
-const AVATAR_EMOJIS = ['🦊', '🐻', '🐶', '🐸', '🐼', '🐯', '🦁', '🐵', '🐨', '🐰'];
+const AVATAR_EMOJIS = ['🦊', '🐻', '🐶', '🐸', '🐼', '🐯', '🦁', '🐵', '🐨', '🦅', '🐱','🦔','🦒', '🐰'];
 
 export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
