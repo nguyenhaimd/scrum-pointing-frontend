@@ -21,6 +21,7 @@ export default function ScrumPointingApp() {
   const [vote, setVote] = useState(null);
   const [votes, setVotes] = useState({});
   const [votesRevealed, setVotesRevealed] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [width, height] = useWindowSize();
 
@@ -39,6 +40,8 @@ export default function ScrumPointingApp() {
 
     socket.on('revealVotes', () => {
       setVotesRevealed(true);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 10000);
     });
 
     socket.on('sessionEnded', () => {
@@ -47,6 +50,7 @@ export default function ScrumPointingApp() {
       setVotes({});
       setVote(null);
       setVotesRevealed(false);
+      setShowConfetti(false);
     });
 
     socket.on('participantsUpdate', (names) => {
@@ -82,6 +86,7 @@ export default function ScrumPointingApp() {
     setVotes({});
     setVote(null);
     setVotesRevealed(false);
+    setShowConfetti(false);
     setStoryQueue(storyQueue.filter((_, i) => i !== index));
   };
 
@@ -126,9 +131,7 @@ export default function ScrumPointingApp() {
               onChange={(e) => setRole(e.target.value)}
             >
               {ROLE_OPTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
             <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onClick={join}>
@@ -207,7 +210,7 @@ export default function ScrumPointingApp() {
 
                 {votesRevealed && (
                   <>
-                    <Confetti width={width} height={height} />
+                    {showConfetti && <Confetti width={width} height={height} />}
                     <div className="mt-6 bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold mb-2">Votes</h3>
                       <ul className="text-left inline-block">
@@ -223,10 +226,10 @@ export default function ScrumPointingApp() {
 
                 {isScrumMaster && (
                   <div className="mt-6 text-left">
-                    <h3 className="font-semibold mb-2">Voting Progress</h3>
+                    <h3 className="font-semibold mb-2">Voting Progress (Developers Only)</h3>
                     <ul className="bg-gray-100 rounded p-3 text-sm">
                       {participants
-                        .filter((name) => name !== nickname)
+                        .filter((name) => name !== nickname && !name.toLowerCase().includes('observer'))
                         .map((name) => (
                           <li key={name} className="flex justify-between mb-1">
                             <span>{name}</span>
@@ -236,6 +239,14 @@ export default function ScrumPointingApp() {
                           </li>
                         ))}
                     </ul>
+                    <div className="mt-4">
+                      <h3 className="font-semibold mb-2">All Participants</h3>
+                      <ul className="bg-gray-50 rounded p-3 text-sm">
+                        {participants.map((name) => (
+                          <li key={name}>👤 {name}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
