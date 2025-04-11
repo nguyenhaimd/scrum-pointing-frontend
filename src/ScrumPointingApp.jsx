@@ -1,3 +1,5 @@
+// Entire content replaced below
+
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
@@ -193,18 +195,35 @@ export default function ScrumPointingApp() {
                     </div>
                   </>
                 )}
+
+                {isScrumMaster && (
+                  <div className="mt-6 text-left">
+                    <h3 className="font-semibold mb-2">Voting Progress (Developers Only)</h3>
+                    <ul className="bg-gray-100 rounded p-3 text-sm">
+                      {participants.filter((name) => participantRoles[name] === 'Developer').map((name) => (
+                        <li key={name} className="flex justify-between mb-1">
+                          <span>{participantAvatars[name] || '❓'} {name}</span>
+                          <span className={votes[name] ? 'text-green-600' : 'text-yellow-600'}>
+                            {votes[name] ? '✅ Voted' : '⏳ Waiting'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-4">
+                      <h3 className="font-semibold mb-2">All Participants</h3>
+                      <ul className="bg-gray-50 rounded p-3 text-sm">
+                        {participants.map((name) => (
+                          <li key={name}>{participantAvatars[name] || '❓'} {name} ({participantRoles[name] || 'Unknown'})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {isScrumMaster && (
-              <div className="mt-6 text-left">
-                <h3 className="font-semibold mb-2">All Participants</h3>
-                <ul className="bg-gray-50 rounded p-3 text-sm">
-                  {participants.map((name) => (
-                    <li key={name}>{participantAvatars[name] || '❓'} {name} ({participantRoles[name] || 'Unknown'})</li>
-                  ))}
-                </ul>
-              </div>
+            {!sessionActive && !isScrumMaster && (
+              <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
             )}
           </>
         )}
