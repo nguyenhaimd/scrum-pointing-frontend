@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@react-hook/window-size';
 import { motion } from 'framer-motion';
+import toast, { Toaster } from 'react-hot-toast';
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
@@ -20,12 +21,10 @@ const AVATAR_EMOJIS = [
 ];
 
 export default function ScrumPointingApp() {
-  const getRandomAvatar = () => AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
-
   const [nickname, setNickname] = useState('');
-  const [room, setRoom] = useState('');
+  const [room, setRoom] = useState('AFOSR Pega Developers');
   const [role, setRole] = useState('Developer');
-  const [selectedAvatar, setSelectedAvatar] = useState(getRandomAvatar());
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]);
   const [hasJoined, setHasJoined] = useState(false);
   const [storyTitle, setStoryTitle] = useState('');
   const [storyQueue, setStoryQueue] = useState([]);
@@ -42,6 +41,7 @@ export default function ScrumPointingApp() {
   const [roomMessages, setRoomMessages] = useState([]);
   const [error, setError] = useState('');
   const [width, height] = useWindowSize();
+  const chatRef = useRef(null);
 
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper = role === 'Developer';
@@ -53,18 +53,18 @@ export default function ScrumPointingApp() {
   const userStatus = hasJoined ? `${selectedAvatar} Logged in as ${nickname} (${role})` : '';
 
   const getConsensus = () => {
-    const voteValues = Object.entries(votes)
-      .filter(([user]) => participantRoles[user] === 'Developer')
-      .map(([_, val]) => Number(val));
-    if (!voteValues.length) return [];
-    const freqMap = voteValues.reduce((map, val) => {
-      map[val] = (map[val] || 0) + 1;
-      return map;
+    const values = Object.entries(votes)
+      .filter(([u]) => participantRoles[u] === 'Developer')
+      .map(([_, v]) => Number(v));
+    if (!values.length) return [];
+    const freq = values.reduce((acc, val) => {
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
     }, {});
-    const maxFreq = Math.max(...Object.values(freqMap));
-    return Object.entries(freqMap)
-      .filter(([_, freq]) => freq === maxFreq)
-      .map(([point]) => Number(point))
+    const maxFreq = Math.max(...Object.values(freq));
+    return Object.entries(freq)
+      .filter(([_, f]) => f === maxFreq)
+      .map(([v]) => Number(v))
       .sort((a, b) => a - b);
   };
 
@@ -76,17 +76,10 @@ export default function ScrumPointingApp() {
       setParticipantAvatars(avatars || {});
     });
 
-    socket.on('userJoined', (user) => {
-      setRoomMessages(prev => [...prev, `🔵 ${user} joined the room.`]);
-    });
+    socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
+    socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
 
-    socket.on('userLeft', (user) => {
-      setRoomMessages(prev => [...prev, `🔴 ${user} left the room.`]);
-    });
-
-    socket.on('updateVotes', (updatedVotes) => {
-      setVotes(updatedVotes);
-    });
+    socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
 
     socket.on('startSession', (title) => {
       setStoryTitle(title);
@@ -127,17 +120,16 @@ export default function ScrumPointingApp() {
     };
   }, []);
 
-  const sendChatMessage = () => {
-    if (chatInput.trim()) {
-      socket.emit('teamChat', { room, sender: nickname, text: chatInput });
-      setChatInput('');
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  };
+  }, [chatMessages]);
 
   const join = () => {
     setError('');
     if (!nickname.trim() || !room.trim()) {
-      setError('Room name and nickname are required.');
+      setError('Team Name and Nickname are required.');
       return;
     }
     if (role === 'Scrum Master') {
@@ -170,9 +162,18 @@ export default function ScrumPointingApp() {
       setStoryTitle('');
     }
   };
+
+  const initiateRevote = () => {
+    socket.emit('startSession', { title: storyTitle, room });
+    setVotes({});
+    setVote(null);
+    setVotesRevealed(false);
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
+      <Toaster position="top-right" reverseOrder={false} />
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
+
         {hasJoined && (
           <div className="mb-4 text-sm text-center text-blue-700 font-semibold">
             {userStatus}
@@ -183,7 +184,7 @@ export default function ScrumPointingApp() {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
             {error && <p className="text-red-500 mb-2">{error}</p>}
-            <input className="p-2 border rounded w-full mb-2" placeholder="Room name" value={room} onChange={(e) => setRoom(e.target.value)} />
+            <input className="p-2 border rounded w-full mb-2" placeholder="Team Name" value={room} onChange={(e) => setRoom(e.target.value)} />
             <input className="p-2 border rounded w-full mb-2" placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} />
             <select className="p-2 border rounded w-full mb-2" value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -196,12 +197,6 @@ export default function ScrumPointingApp() {
           </div>
         ) : (
           <div>
-            {roomMessages.length > 0 && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 text-sm mb-4 rounded">
-                {roomMessages.map((msg, idx) => <div key={idx}>{msg}</div>)}
-              </div>
-            )}
-
             <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2">Users in this session:</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -216,7 +211,7 @@ export default function ScrumPointingApp() {
 
             <div className="text-left text-sm mb-4">
               <h3 className="font-semibold mb-1">Team Chat</h3>
-              <div className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
+              <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
                 {chatMessages.map((msg, i) => (
                   <div key={i}><strong>{msg.sender}:</strong> {msg.text}</div>
                 ))}
@@ -231,7 +226,7 @@ export default function ScrumPointingApp() {
               <div>
                 <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
 
-                {isScrumMaster && (
+                {(isScrumMaster || isObserver) && (
                   <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <p className="font-semibold mb-2">Voting Progress:</p>
                     <progress className="w-full h-3 mb-2" value={votesCast} max={totalDevelopers}></progress>
@@ -284,11 +279,14 @@ export default function ScrumPointingApp() {
                 )}
 
                 {isScrumMaster && (
-                  <div className="flex justify-center gap-4 mt-6">
+                  <div className="flex justify-center flex-wrap gap-4 mt-6">
                     {!votesRevealed && (
                       <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>
                     )}
-                    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>End Session</button>
+                    {votesRevealed && (
+                      <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onClick={initiateRevote}>Revote</button>
+                    )}
+                    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>Next Story/Defect</button>
                   </div>
                 )}
               </div>
