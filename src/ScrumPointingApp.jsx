@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:4000');
+// for use in local a testing only
+//const socket = io('http://localhost:4000');
+
+const socket = io(import.meta.env.VITE_BACKEND_URL, {
+  transports: ['websocket'],
+  secure: true
+});
+
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 
 export default function ScrumPointingApp() {
