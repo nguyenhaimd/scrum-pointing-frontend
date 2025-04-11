@@ -126,6 +126,13 @@ export default function ScrumPointingApp() {
     }
   }, [chatMessages]);
 
+  const sendChatMessage = () => {
+    if (chatInput.trim()) {
+      socket.emit('teamChat', { room, sender: nickname, text: chatInput });
+      setChatInput('');
+    }
+  };
+
   const join = () => {
     setError('');
     if (!nickname.trim() || !room.trim()) {
@@ -272,7 +279,7 @@ export default function ScrumPointingApp() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                       >
-                        📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 || consensusPoints[0] !== 1 ? 's' : ''}
+                        📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 ? 's' : ''}
                       </motion.p>
                     )}
                   </>
