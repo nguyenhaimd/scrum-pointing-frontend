@@ -20,6 +20,8 @@ const AVATAR_EMOJIS = [
   '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
 
+const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
+
 export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('AFOSR Pega Developers');
@@ -38,7 +40,7 @@ export default function ScrumPointingApp() {
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [roomMessages, setRoomMessages] = useState([]);
+  const [reactions, setReactions] = useState([]);
   const [error, setError] = useState('');
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
@@ -108,6 +110,14 @@ export default function ScrumPointingApp() {
       setChatMessages(prev => [...prev, { sender, text }]);
     });
 
+    socket.on('emojiReaction', ({ sender, emoji }) => {
+      const id = Date.now();
+      setReactions(prev => [...prev, { sender, emoji, id }]);
+      setTimeout(() => {
+        setReactions(prev => prev.filter(r => r.id !== id));
+      }, 4000);
+    });
+
     return () => {
       socket.off('participantsUpdate');
       socket.off('userJoined');
@@ -117,6 +127,7 @@ export default function ScrumPointingApp() {
       socket.off('revealVotes');
       socket.off('sessionEnded');
       socket.off('teamChat');
+      socket.off('emojiReaction');
     };
   }, []);
 
@@ -131,6 +142,10 @@ export default function ScrumPointingApp() {
       socket.emit('teamChat', { room, sender: nickname, text: chatInput });
       setChatInput('');
     }
+  };
+
+  const sendReaction = (emoji) => {
+    socket.emit('emojiReaction', { sender: nickname, emoji });
   };
 
   const join = () => {
@@ -183,7 +198,7 @@ export default function ScrumPointingApp() {
 
         {hasJoined && (
           <div className="mb-4 text-sm text-center text-blue-700 font-semibold">
-            {userStatus}
+            {selectedAvatar} Logged in as {nickname} ({role})
           </div>
         )}
 
@@ -203,7 +218,29 @@ export default function ScrumPointingApp() {
             <button className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition" onClick={join}>Join</button>
           </div>
         ) : (
-          <div>
+          <>
+            {hasJoined && (
+              <div className="flex gap-2 justify-center my-4 flex-wrap">
+                {REACTION_EMOJIS.map((emoji, index) => (
+                  <button key={index} className="text-2xl hover:scale-110 transition" onClick={() => sendReaction(emoji)}>{emoji}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+              {reactions.map((r) => (
+                <motion.div
+                  key={r.id}
+                  initial={{ opacity: 0, y: 0 }}
+                  animate={{ opacity: 1, y: -80 }}
+                  exit={{ opacity: 0 }}
+                  className="text-4xl"
+                >
+                  {r.emoji}
+                </motion.div>
+              ))}
+            </div>
+
             <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2">Users in this session:</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -230,7 +267,7 @@ export default function ScrumPointingApp() {
             </div>
 
             {sessionActive && (
-              <div>
+              <>
                 <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
 
                 {(isScrumMaster || isObserver) && (
@@ -296,7 +333,7 @@ export default function ScrumPointingApp() {
                     <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>Next Story/Defect</button>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {!sessionActive && isScrumMaster && (
@@ -317,7 +354,7 @@ export default function ScrumPointingApp() {
             {!sessionActive && !isScrumMaster && (
               <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
