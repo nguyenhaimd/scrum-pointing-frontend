@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@react-hook/window-size';
+import { motion } from 'framer-motion';
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
@@ -48,6 +49,26 @@ export default function ScrumPointingApp() {
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = Object.keys(votes).filter(p => participantRoles[p] === 'Developer').length;
+
+  const userStatus = hasJoined ? `${selectedAvatar} Logged in as ${nickname} (${role})` : '';
+
+  const getConsensus = () => {
+    const voteValues = Object.entries(votes)
+      .filter(([user]) => participantRoles[user] === 'Developer')
+      .map(([_, val]) => Number(val));
+    if (!voteValues.length) return [];
+    const freqMap = voteValues.reduce((map, val) => {
+      map[val] = (map[val] || 0) + 1;
+      return map;
+    }, {});
+    const maxFreq = Math.max(...Object.values(freqMap));
+    return Object.entries(freqMap)
+      .filter(([_, freq]) => freq === maxFreq)
+      .map(([point]) => Number(point))
+      .sort((a, b) => a - b);
+  };
+
+  const consensusPoints = votesRevealed ? getConsensus() : [];
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars }) => {
       setParticipants(names);
@@ -152,6 +173,12 @@ export default function ScrumPointingApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
+        {hasJoined && (
+          <div className="mb-4 text-sm text-center text-blue-700 font-semibold">
+            {userStatus}
+          </div>
+        )}
+
         {!hasJoined ? (
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
@@ -159,38 +186,31 @@ export default function ScrumPointingApp() {
             <input className="p-2 border rounded w-full mb-2" placeholder="Room name" value={room} onChange={(e) => setRoom(e.target.value)} />
             <input className="p-2 border rounded w-full mb-2" placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} />
             <select className="p-2 border rounded w-full mb-2" value={role} onChange={(e) => setRole(e.target.value)}>
-              {ROLE_OPTIONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
+              {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <select className="p-2 border rounded w-full mb-2" value={selectedAvatar} onChange={(e) => setSelectedAvatar(e.target.value)}>
-              {AVATAR_EMOJIS.map((emoji) => (
-                <option key={emoji} value={emoji}>{emoji}</option>
-              ))}
+            <select className="p-2 border rounded w-full mb-2 text-2xl" value={selectedAvatar} onChange={(e) => setSelectedAvatar(e.target.value)}>
+              {AVATAR_EMOJIS.map((emoji) => <option key={emoji} value={emoji}>{emoji}</option>)}
             </select>
-            <div className="text-xl mt-2 text-center">
-              Selected Avatar: <span className="text-3xl">{selectedAvatar}</span>
-            </div>
+            <div className="text-4xl mt-2 text-center">Selected Avatar: {selectedAvatar}</div>
             <button className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition" onClick={join}>Join</button>
           </div>
         ) : (
           <div>
-            <div className="mb-4 text-sm">
-              {roomMessages.length > 0 && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 text-sm mb-4 rounded">
-                  {roomMessages.map((msg, idx) => <div key={idx}>{msg}</div>)}
-                </div>
-              )}
-              <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
-                <h3 className="font-semibold mb-2">Users in this session:</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {participants.map((p) => (
-                    <div key={p} className="flex items-center gap-2">
-                      <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                      <span>{p} ({participantRoles[p]})</span>
-                    </div>
-                  ))}
-                </div>
+            {roomMessages.length > 0 && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 text-sm mb-4 rounded">
+                {roomMessages.map((msg, idx) => <div key={idx}>{msg}</div>)}
+              </div>
+            )}
+
+            <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
+              <h3 className="font-semibold mb-2">Users in this session:</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {participants.map((p) => (
+                  <div key={p} className="flex items-center gap-2">
+                    <span className="text-3xl">{participantAvatars[p] || '❓'}</span>
+                    <span>{p} ({participantRoles[p]})</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -202,13 +222,7 @@ export default function ScrumPointingApp() {
                 ))}
               </div>
               <div className="mt-2 flex gap-2">
-                <input
-                  className="flex-1 border p-1 rounded"
-                  placeholder="Type a message..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                />
+                <input className="flex-1 border p-1 rounded" placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()} />
                 <button className="px-3 bg-blue-500 text-white rounded" onClick={sendChatMessage}>Send</button>
               </div>
             </div>
@@ -217,26 +231,18 @@ export default function ScrumPointingApp() {
               <div>
                 <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
 
-                {isScrumMaster && !votesRevealed && (
-                  <>
-                    <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
-                      <p className="font-semibold mb-2">Voting Progress:</p>
-                      <progress className="w-full h-3 mb-2" value={votesCast} max={totalDevelopers}></progress>
-                      <ul className="text-sm">
-                        {participants
-                          .filter(p => participantRoles[p] === 'Developer')
-                          .map((p) => (
-                            <li key={p}>
-                              {participantAvatars[p] || '❓'} {p} — {votes[p] ? '✅ Voted' : '⏳ Waiting'}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                    <div className="flex justify-center gap-4 mt-4">
-                      <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>
-                      <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>End Session</button>
-                    </div>
-                  </>
+                {isScrumMaster && (
+                  <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
+                    <p className="font-semibold mb-2">Voting Progress:</p>
+                    <progress className="w-full h-3 mb-2" value={votesCast} max={totalDevelopers}></progress>
+                    <ul className="text-sm">
+                      {participants.filter(p => participantRoles[p] === 'Developer').map((p) => (
+                        <li key={p}>
+                          {participantAvatars[p] || '❓'} {p} — {votes[p] ? '✅ Voted' : '⏳ Waiting'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 {isObserver && (
@@ -264,7 +270,26 @@ export default function ScrumPointingApp() {
                         ))}
                       </ul>
                     </div>
+                    {consensusPoints.length > 0 && (
+                      <motion.p
+                        className="text-lg text-center mt-4 text-green-700 font-bold"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                      >
+                        📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 || consensusPoints[0] !== 1 ? 's' : ''}
+                      </motion.p>
+                    )}
                   </>
+                )}
+
+                {isScrumMaster && (
+                  <div className="flex justify-center gap-4 mt-6">
+                    {!votesRevealed && (
+                      <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>
+                    )}
+                    <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>End Session</button>
+                  </div>
                 )}
               </div>
             )}
