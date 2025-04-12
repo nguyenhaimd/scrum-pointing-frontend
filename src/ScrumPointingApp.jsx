@@ -212,20 +212,31 @@ export default function ScrumPointingApp() {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* Floating emoji reactions */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-        {reactions.map((r) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, y: 0 }}
-            animate={{ opacity: 1, y: -80 }}
-            exit={{ opacity: 0 }}
-            className="text-center"
-          >
-            <div className="text-4xl">{r.emoji}</div>
-            <div className="text-xs text-gray-600">{r.sender}</div>
-          </motion.div>
-        ))}
-      </div>
+      <div className="fixed bottom-20 left-0 w-full z-50 pointer-events-none">
+  {reactions.map((r) => {
+    const randomX = Math.random() * 80 + 10; // 10% – 90%
+    const randomScale = Math.random() * 0.5 + 1; // scale 1.0–1.5
+
+    return (
+      <motion.div
+        key={r.id}
+        initial={{ opacity: 0, y: 0, scale: 0.8 }}
+        animate={{
+          opacity: 1,
+          y: -100,
+          scale: randomScale,
+          transition: { duration: 1.5, ease: 'easeOut' }
+        }}
+        exit={{ opacity: 0 }}
+        className="absolute text-center"
+        style={{ left: `${randomX}%` }}
+      >
+        <div className="text-4xl">{r.emoji}</div>
+        <div className="text-xs text-gray-600">{r.sender}</div>
+      </motion.div>
+    );
+  })}
+</div>
 
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6 relative">
         {/* Connection status */}
