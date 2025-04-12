@@ -57,6 +57,8 @@ export default function ScrumPointingApp() {
   const [myMood, setMyMood] = useState('😎');
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [globalStartTime, setGlobalStartTime] = useState(null);
+  const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
 
@@ -95,6 +97,16 @@ export default function ScrumPointingApp() {
     }
     return () => clearInterval(timer);
   }, [sessionStartTime]);
+
+  useEffect(() => {
+    let timer;
+    if (globalStartTime) {
+      timer = setInterval(() => {
+        setGlobalElapsedSeconds(Math.floor((Date.now() - globalStartTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [globalStartTime]);
 
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars, moods }) => {
@@ -209,6 +221,7 @@ export default function ScrumPointingApp() {
     }
     socket.emit('join', { nickname, room, role, avatar: selectedAvatar, emoji: myMood });
     setHasJoined(true);
+    setGlobalStartTime(Date.now());
   };
 
   const castVote = (point) => {
@@ -330,8 +343,8 @@ export default function ScrumPointingApp() {
           {(showSidebar || width >= 1024) && (
             <div className="bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2 hidden lg:block">Users in this session</h3>
-              <div className="text-sm text-center font-medium text-blue-700">
-  ⏱️ Elapsed Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+              <div className="mb-3 text-sm text-center text-blue-700 font-medium">
+  ⏱️ Elapsed Time: {Math.floor(globalElapsedSeconds / 60)}:{(globalElapsedSeconds % 60).toString().padStart(2, '0')}
 </div>
               <div className="grid grid-cols-1 gap-2">
                 {participants.map((p) => (
