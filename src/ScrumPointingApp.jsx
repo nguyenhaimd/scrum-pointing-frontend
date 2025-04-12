@@ -13,6 +13,14 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
+const MOOD_OPTIONS = {
+  '😎': 'Ready',
+  '🧠': 'Focused',
+  '💤': 'Tired',
+  '🐢': 'Still thinking',
+  '🚀': 'Let’s go',
+  '☕': 'Coffee'
+};
 const AVATAR_EMOJIS = [
   '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
   '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
@@ -38,6 +46,7 @@ export default function ScrumPointingApp() {
   const [participants, setParticipants] = useState([]);
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
+  const [participantMoods, setParticipantMoods] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [reactions, setReactions] = useState([]);
@@ -45,6 +54,9 @@ export default function ScrumPointingApp() {
   const [connectionStatus, setConnectionStatus] = useState('connected');
   const [error, setError] = useState('');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [myMood, setMyMood] = useState('😎');
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
 
@@ -72,11 +84,30 @@ export default function ScrumPointingApp() {
   };
 
   const consensusPoints = votesRevealed ? getConsensus() : [];
+
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars }) => {
+    let timer;
+    if (sessionStartTime) {
+      timer = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => clearInterval(timer);
+  }, [sessionStartTime]);
+
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+  useEffect(() => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods }) => {
       setParticipants(names);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
+      setParticipantMoods(moods || {});
     });
 
     socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
@@ -101,6 +132,7 @@ export default function ScrumPointingApp() {
       setVotes({});
       setVote(null);
       setVotesRevealed(false);
+      setSessionStartTime(Date.now());
     });
 
     socket.on('revealVotes', () => {
@@ -116,6 +148,7 @@ export default function ScrumPointingApp() {
       setVote(null);
       setVotesRevealed(false);
       setShowConfetti(false);
+      setSessionStartTime(null);
     });
 
     socket.on('teamChat', ({ sender, text }) => {
@@ -158,6 +191,11 @@ export default function ScrumPointingApp() {
     socket.emit('userTyping');
   };
 
+  const updateMood = (emoji) => {
+    setMyMood(emoji);
+    socket.emit('updateMood', { nickname, emoji });
+  };
+
   const join = () => {
     setError('');
     if (!nickname.trim() || !room.trim()) {
@@ -171,7 +209,7 @@ export default function ScrumPointingApp() {
         return;
       }
     }
-    socket.emit('join', { nickname, room, role, avatar: selectedAvatar });
+    socket.emit('join', { nickname, room, role, avatar: selectedAvatar, emoji: myMood });
     setHasJoined(true);
   };
 
@@ -200,42 +238,37 @@ export default function ScrumPointingApp() {
     setVotes({});
     setVote(null);
     setVotesRevealed(false);
+    setSessionStartTime(Date.now());
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Reactions */}
-      <div className="fixed bottom-20 left-0 w-full z-50 pointer-events-none">
-        {reactions.map((r) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, y: 0, scale: 0.8 }}
-            animate={{
-              opacity: 1,
-              y: -100,
-              scale: r.scale,
-              transition: { duration: 1.5, ease: 'easeOut' }
-            }}
-            exit={{ opacity: 0 }}
-            className="absolute text-center"
-            style={{ left: `${r.x}%` }}
-          >
-            <div className="text-4xl">{r.emoji}</div>
-            <div className="text-xs text-gray-600">{r.sender}</div>
-          </motion.div>
-        ))}
-      </div>
+      {/* Session Timer */}
+      {hasJoined && sessionActive && (
+        <div className="text-sm text-center mb-2 text-blue-700 font-medium">
+          ⏱️ Session Time: {formatTime(elapsedSeconds)}
+        </div>
+      )}
 
-      {/* Top Info */}
+      {/* Mood Toggle */}
       {hasJoined && (
-        <div className="mb-3 text-sm text-center text-blue-700 font-semibold">
-          {selectedAvatar} Logged in as {nickname} ({role})
+        <div className="flex justify-center gap-2 mb-4 flex-wrap">
+          {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+            <button
+              key={emoji}
+              onClick={() => updateMood(emoji)}
+              className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
+              title={label}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
       )}
 
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Sidebar - User List */}
+        {/* Sidebar */}
         <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
           <div className="flex lg:hidden justify-between items-center mb-2">
             <span className="font-semibold">Users in this session</span>
@@ -250,20 +283,24 @@ export default function ScrumPointingApp() {
           {(showSidebar || width >= 1024) && (
             <div className="bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2 hidden lg:block">Users in this session</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {participants.map((p) => (
-                  <div key={p} className="flex items-center gap-2">
+                  <div key={p} className="flex items-center gap-2 border-b pb-1">
                     <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                    <span>{p} ({participantRoles[p]})</span>
+                    <div className="flex-1">
+                      <div className="font-medium">{p} ({participantRoles[p]})</div>
+                      {participantMoods[p] && (
+                        <div className="text-sm text-gray-500">Mood: {participantMoods[p]}</div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
-
-        {/* Main Content */}
-        <div className="flex-1">
+                {/* Main Content */}
+                <div className="flex-1">
           {!hasJoined ? (
             <div className="max-w-md mx-auto text-center">
               <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
@@ -281,7 +318,7 @@ export default function ScrumPointingApp() {
             </div>
           ) : (
             <>
-              {/* Chat */}
+              {/* Chat Section */}
               <div className="text-left text-sm mb-4">
                 <h3 className="font-semibold mb-1">Team Chat</h3>
                 <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
@@ -400,5 +437,4 @@ export default function ScrumPointingApp() {
     </div>
   );
 }
-
 
