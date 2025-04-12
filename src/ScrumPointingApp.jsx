@@ -267,40 +267,50 @@ export default function ScrumPointingApp() {
 
       {/* Mood Toggle */}
       {hasJoined && (
-        <div className="flex justify-center gap-2 mb-2 flex-wrap">
-          {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
-            <button
-              key={emoji}
-              onClick={() => updateMood(emoji)}
-              className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
-              title={label}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
+  <>
+    <div className="text-sm text-center font-medium mb-1 text-gray-700">
+      Select Your Current Mood:
+    </div>
+    <div className="flex justify-center gap-2 mb-2 flex-wrap">
+      {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+        <button
+          key={emoji}
+          onClick={() => updateMood(emoji)}
+          className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
+          title={label}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  </>
+)}
 
       {/* Emoji Buttons */}
       {hasJoined && (
-        <div className="flex flex-wrap justify-center gap-3 my-2">
-          {REACTION_EMOJIS.map((emoji, index) => (
-            <button
-              key={index}
-              className="text-2xl hover:scale-125 transition"
-              onClick={() => sendReaction(emoji)}
-              title={`React with ${emoji}`}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
+  <>
+    <div className="text-sm text-center font-medium mt-4 mb-1 text-gray-700">
+      Send a Quick Emoji Reaction:
+    </div>
+    <div className="flex flex-wrap justify-center gap-3 my-2">
+      {REACTION_EMOJIS.map((emoji, index) => (
+        <button
+          key={index}
+          className="text-2xl hover:scale-125 transition"
+          onClick={() => sendReaction(emoji)}
+          title={`React with ${emoji}`}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  </>
+)}
 
       {/* Timer */}
       {hasJoined && sessionActive && (
         <div className="text-sm text-center mb-3 text-blue-700 font-medium">
-          ⏱️ Session Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+          ⏱️ Current Session Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
         </div>
       )}
 
@@ -320,6 +330,9 @@ export default function ScrumPointingApp() {
           {(showSidebar || width >= 1024) && (
             <div className="bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2 hidden lg:block">Users in this session</h3>
+              <div className="mb-3 text-sm text-center text-blue-700 font-medium">
+  ⏱️ Elapsed Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+</div>
               <div className="grid grid-cols-1 gap-2">
                 {participants.map((p) => (
                   <div key={p} className="flex items-center gap-2 border-b pb-1">
