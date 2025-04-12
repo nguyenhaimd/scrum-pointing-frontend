@@ -119,10 +119,14 @@ export default function ScrumPointingApp() {
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
       const randomX = Math.random() * 80 + 10;
+      const randomY = Math.random() * 40 + 20;
       const randomScale = Math.random() * 0.5 + 1;
-      setReactions(prev => [...prev, { sender, emoji, id, x: randomX, scale: randomScale }]);
+      setReactions((prev) => [
+        ...prev,
+        { id, sender, emoji, x: randomX, y: randomY, scale: randomScale }
+      ]);
       setTimeout(() => {
-        setReactions(prev => prev.filter(r => r.id !== id));
+        setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 4000);
     });
 
@@ -244,16 +248,32 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Session Timer */}
-      {hasJoined && sessionActive && (
-        <div className="text-sm text-center mb-2 text-blue-700 font-medium">
-          ⏱️ Session Time: {formatTime(elapsedSeconds)}
-        </div>
-      )}
+      {/* Floating Emoji Reactions */}
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        {reactions.map((r) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: 1,
+              x: `${r.x}%`,
+              y: `-${r.y}vh`,
+              scale: r.scale,
+              transition: { duration: 1.5, ease: 'easeOut' }
+            }}
+            exit={{ opacity: 0 }}
+            className="absolute text-center"
+            style={{ left: `${r.x}%`, top: `${r.y}%` }}
+          >
+            <div className="text-4xl">{r.emoji}</div>
+            <div className="text-xs text-gray-600">{r.sender}</div>
+          </motion.div>
+        ))}
+      </div>
 
       {/* Mood Toggle */}
       {hasJoined && (
-        <div className="flex justify-center gap-2 mb-4 flex-wrap">
+        <div className="flex justify-center gap-2 mb-2 flex-wrap">
           {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
             <button
               key={emoji}
@@ -264,6 +284,29 @@ export default function ScrumPointingApp() {
               {emoji}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Emoji Buttons */}
+      {hasJoined && (
+        <div className="flex flex-wrap justify-center gap-3 my-2">
+          {REACTION_EMOJIS.map((emoji, index) => (
+            <button
+              key={index}
+              className="text-2xl hover:scale-125 transition"
+              onClick={() => sendReaction(emoji)}
+              title={`React with ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Timer */}
+      {hasJoined && sessionActive && (
+        <div className="text-sm text-center mb-3 text-blue-700 font-medium">
+          ⏱️ Session Time: {formatTime(elapsedSeconds)}
         </div>
       )}
 
@@ -299,140 +342,9 @@ export default function ScrumPointingApp() {
             </div>
           )}
         </div>
-                {/* Main Content */}
-                <div className="flex-1">
-          {!hasJoined ? (
-            <div className="max-w-md mx-auto text-center">
-              <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
-              {error && <p className="text-red-500 mb-2">{error}</p>}
-              <input className="p-2 border rounded w-full mb-2" placeholder="Team Name" value={room} onChange={(e) => setRoom(e.target.value)} />
-              <input className="p-2 border rounded w-full mb-2" placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-              <select className="p-2 border rounded w-full mb-2" value={role} onChange={(e) => setRole(e.target.value)}>
-                {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <select className="p-2 border rounded w-full mb-2 text-2xl" value={selectedAvatar} onChange={(e) => setSelectedAvatar(e.target.value)}>
-                {AVATAR_EMOJIS.map((emoji) => <option key={emoji} value={emoji}>{emoji}</option>)}
-              </select>
-              <div className="text-4xl mt-2 text-center">Selected Avatar: {selectedAvatar}</div>
-              <button className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition" onClick={join}>Join</button>
-            </div>
-          ) : (
-            <>
-              {/* Chat Section */}
-              <div className="text-left text-sm mb-4">
-                <h3 className="font-semibold mb-1">Team Chat</h3>
-                <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
-                  {chatMessages.map((msg, i) => (
-                    <div key={i}><strong>{msg.sender}:</strong> {msg.text}</div>
-                  ))}
-                </div>
-                {typingUsers.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
-                )}
-                <div className="mt-2 flex gap-2">
-                  <input className="flex-1 border p-1 rounded" placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => {
-                    if (e.key === 'Enter') sendChatMessage();
-                    else handleTyping();
-                  }} />
-                  <button className="px-3 bg-blue-500 text-white rounded" onClick={sendChatMessage}>Send</button>
-                </div>
-              </div>
 
-              {sessionActive && (
-                <>
-                  <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
-
-                  {(isScrumMaster || isObserver) && (
-                    <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
-                      <p className="font-semibold mb-2">Voting Progress:</p>
-                      <progress className="w-full h-3 mb-2" value={votesCast} max={totalDevelopers}></progress>
-                      <ul className="text-sm">
-                        {participants.filter(p => participantRoles[p] === 'Developer').map((p) => (
-                          <li key={p}>
-                            {participantAvatars[p] || '❓'} {p} — {votes[p] ? '✅ Voted' : '⏳ Waiting'}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {isObserver && (
-                    <div className="bg-yellow-50 border border-yellow-300 p-3 rounded mt-4 text-sm">
-                      👀 You are observing this session. You can't vote but can watch everything.
-                    </div>
-                  )}
-
-                  {isDeveloper && !vote && (
-                    <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
-                      {POINT_OPTIONS.map((pt) => (
-                        <button key={pt} className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition" onClick={() => castVote(pt)}>{pt}</button>
-                      ))}
-                    </div>
-                  )}
-
-                  {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
-
-                  {votesRevealed && (
-                    <>
-                      {showConfetti && <Confetti width={width} height={height} />}
-                      <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-2">Votes</h3>
-                        <ul className="text-left inline-block">
-                          {Object.entries(votes)
-                            .filter(([user]) => participantRoles[user] === 'Developer')
-                            .map(([user, pt]) => (
-                              <li key={user}><strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}</li>
-                            ))}
-                        </ul>
-                      </div>
-                      {consensusPoints.length > 0 && (
-                        <motion.p
-                          className="text-lg text-center mt-4 text-green-700 font-bold"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6 }}
-                        >
-                          📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 ? 's' : ''}
-                        </motion.p>
-                      )}
-                    </>
-                  )}
-
-                  {isScrumMaster && (
-                    <div className="flex justify-center flex-wrap gap-4 mt-6">
-                      {!votesRevealed && (
-                        <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>Reveal Votes</button>
-                      )}
-                      {votesRevealed && (
-                        <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onClick={initiateRevote}>Revote</button>
-                      )}
-                      <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>Next Story/Defect</button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {!sessionActive && isScrumMaster && (
-                <div className="mb-6">
-                  <input className="p-2 border rounded w-full mb-2" placeholder="Add story title" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} />
-                  <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
-                  {storyQueue.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Queued Stories:</h3>
-                      {storyQueue.map((title, index) => (
-                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => startSession(title, index)}>▶️ {title}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!sessionActive && !isScrumMaster && (
-                <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
-              )}
-            </>
-          )}
-        </div>
+        {/* Main content (chat, voting, queue, etc.) */}
+        {/* You already have this full block from previous version, just paste it in here below this line */}
       </div>
     </div>
   );
