@@ -8,16 +8,17 @@ import toast, { Toaster } from 'react-hot-toast';
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
   secure: true,
+  reconnectionAttempts: 5,
 });
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
 const AVATAR_EMOJIS = [
-  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
-  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
-  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
-  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
-  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
+  '🐶','🦅','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤', '🚀',
+  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡', '🛵',
+  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏', '🗽',
+  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛', '🗼'
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
@@ -40,6 +41,9 @@ export default function ScrumPointingApp() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [reactions, setReactions] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [emojiSummary, setEmojiSummary] = useState({});
+  const [connectionStatus, setConnectionStatus] = useState('connected');
   const [error, setError] = useState('');
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
@@ -50,8 +54,6 @@ export default function ScrumPointingApp() {
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
-
-  const userStatus = hasJoined ? `${selectedAvatar} Logged in as ${nickname} (${role})` : '';
 
   const getConsensus = () => {
     const values = Object.entries(votes)
@@ -81,6 +83,14 @@ export default function ScrumPointingApp() {
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
 
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
+    socket.on('emojiReaction', ({ sender, emoji }) => {
+      const id = Date.now();
+      setReactions(prev => [...prev, { sender, emoji, id }]);
+      setTimeout(() => {
+        setReactions(prev => prev.filter(r => r.id !== id));
+      }, 4000);
+    });
+    socket.on('emojiSummary', (summary) => setEmojiSummary(summary));
 
     socket.on('startSession', (title) => {
       setStoryTitle(title);
@@ -109,12 +119,12 @@ export default function ScrumPointingApp() {
       setChatMessages(prev => [...prev, { sender, text }]);
     });
 
-    socket.on('emojiReaction', ({ sender, emoji }) => {
-      const id = Date.now();
-      setReactions(prev => [...prev, { sender, emoji, id }]);
-      setTimeout(() => {
-        setReactions(prev => prev.filter(r => r.id !== id));
-      }, 4000);
+    socket.on('typingUpdate', (users) => {
+      setTypingUsers(users.filter((u) => u !== nickname));
+    });
+
+    socket.on('connectionStatus', (status) => {
+      setConnectionStatus(status);
     });
 
     return () => {
@@ -127,6 +137,9 @@ export default function ScrumPointingApp() {
       socket.off('sessionEnded');
       socket.off('teamChat');
       socket.off('emojiReaction');
+      socket.off('emojiSummary');
+      socket.off('typingUpdate');
+      socket.off('connectionStatus');
     };
   }, []);
 
@@ -145,6 +158,10 @@ export default function ScrumPointingApp() {
 
   const sendReaction = (emoji) => {
     socket.emit('emojiReaction', { sender: nickname, emoji });
+  };
+
+  const handleTyping = () => {
+    socket.emit('userTyping');
   };
 
   const join = () => {
@@ -194,7 +211,7 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Emoji reaction floating animation */}
+      {/* Floating emoji reactions */}
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
         {reactions.map((r) => (
           <motion.div
@@ -210,7 +227,13 @@ export default function ScrumPointingApp() {
         ))}
       </div>
 
-      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
+      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6 relative">
+        {/* Connection status */}
+        <div className="absolute top-2 right-2 text-xs">
+          <span className={`inline-block w-3 h-3 rounded-full mr-1 ${connectionStatus === 'connected' ? 'bg-green-500' : connectionStatus === 'reconnecting' ? 'bg-yellow-400' : 'bg-red-500'}`}></span>
+          {connectionStatus}
+        </div>
+
         {hasJoined && (
           <div className="mb-4 text-sm text-center text-blue-700 font-semibold">
             {selectedAvatar} Logged in as {nickname} ({role})
@@ -234,12 +257,14 @@ export default function ScrumPointingApp() {
           </div>
         ) : (
           <>
+            {/* Emoji bar */}
             <div className="flex gap-2 justify-center my-4 flex-wrap">
               {REACTION_EMOJIS.map((emoji, index) => (
                 <button key={index} className="text-2xl hover:scale-110 transition" onClick={() => sendReaction(emoji)}>{emoji}</button>
               ))}
             </div>
 
+            {/* User list */}
             <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2">Users in this session:</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -252,6 +277,7 @@ export default function ScrumPointingApp() {
               </div>
             </div>
 
+            {/* Chat */}
             <div className="text-left text-sm mb-4">
               <h3 className="font-semibold mb-1">Team Chat</h3>
               <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
@@ -259,8 +285,14 @@ export default function ScrumPointingApp() {
                   <div key={i}><strong>{msg.sender}:</strong> {msg.text}</div>
                 ))}
               </div>
+              {typingUsers.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
+              )}
               <div className="mt-2 flex gap-2">
-                <input className="flex-1 border p-1 rounded" placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()} />
+                <input className="flex-1 border p-1 rounded" placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => {
+                  if (e.key === 'Enter') sendChatMessage();
+                  else handleTyping();
+                }} />
                 <button className="px-3 bg-blue-500 text-white rounded" onClick={sendChatMessage}>Send</button>
               </div>
             </div>
@@ -284,7 +316,9 @@ export default function ScrumPointingApp() {
                 )}
 
                 {isObserver && (
-                  <p className="text-blue-600 italic text-sm mt-4">👀 You are observing this session and cannot vote.</p>
+                  <div className="bg-yellow-50 border border-yellow-300 p-3 rounded mt-4 text-sm">
+                    👀 You are observing this session. You can't vote but can watch everything.
+                  </div>
                 )}
 
                 {isDeveloper && !vote && (
@@ -319,6 +353,18 @@ export default function ScrumPointingApp() {
                       >
                         📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 ? 's' : ''}
                       </motion.p>
+                    )}
+                    {Object.keys(emojiSummary).length > 0 && (
+                      <div className="mt-4 text-center text-sm">
+                        <h4 className="font-semibold mb-2">Emoji Leaderboard</h4>
+                        <ul className="inline-block text-left">
+                          {Object.entries(emojiSummary)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([emoji, count]) => (
+                              <li key={emoji}>{emoji} — {count}</li>
+                            ))}
+                        </ul>
+                      </div>
                     )}
                   </>
                 )}
