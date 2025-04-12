@@ -14,11 +14,11 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
 const AVATAR_EMOJIS = [
-  '🐶','🦅','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
-  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤', '🚀',
-  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡', '🛵',
-  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏', '🗽',
-  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛', '🗼'
+  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
+  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
+  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
+  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
@@ -83,14 +83,20 @@ export default function ScrumPointingApp() {
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
 
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
+
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
-      setReactions(prev => [...prev, { sender, emoji, id }]);
+      const randomX = Math.random() * 80 + 10; // 10% – 90%
+      const randomScale = Math.random() * 0.5 + 1; // scale 1.0–1.5
+
+      setReactions(prev => [...prev, { sender, emoji, id, x: randomX, scale: randomScale }]);
       setTimeout(() => {
         setReactions(prev => prev.filter(r => r.id !== id));
       }, 4000);
     });
+
     socket.on('emojiSummary', (summary) => setEmojiSummary(summary));
+    socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
 
     socket.on('startSession', (title) => {
       setStoryTitle(title);
@@ -119,10 +125,6 @@ export default function ScrumPointingApp() {
       setChatMessages(prev => [...prev, { sender, text }]);
     });
 
-    socket.on('typingUpdate', (users) => {
-      setTypingUsers(users.filter((u) => u !== nickname));
-    });
-
     socket.on('connectionStatus', (status) => {
       setConnectionStatus(status);
     });
@@ -132,13 +134,13 @@ export default function ScrumPointingApp() {
       socket.off('userJoined');
       socket.off('userLeft');
       socket.off('updateVotes');
+      socket.off('emojiReaction');
+      socket.off('emojiSummary');
+      socket.off('typingUpdate');
       socket.off('startSession');
       socket.off('revealVotes');
       socket.off('sessionEnded');
       socket.off('teamChat');
-      socket.off('emojiReaction');
-      socket.off('emojiSummary');
-      socket.off('typingUpdate');
       socket.off('connectionStatus');
     };
   }, []);
@@ -211,32 +213,27 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Floating emoji reactions */}
+      {/* Random emoji reaction floats */}
       <div className="fixed bottom-20 left-0 w-full z-50 pointer-events-none">
-  {reactions.map((r) => {
-    const randomX = Math.random() * 80 + 10; // 10% – 90%
-    const randomScale = Math.random() * 0.5 + 1; // scale 1.0–1.5
-
-    return (
-      <motion.div
-        key={r.id}
-        initial={{ opacity: 0, y: 0, scale: 0.8 }}
-        animate={{
-          opacity: 1,
-          y: -100,
-          scale: randomScale,
-          transition: { duration: 1.5, ease: 'easeOut' }
-        }}
-        exit={{ opacity: 0 }}
-        className="absolute text-center"
-        style={{ left: `${randomX}%` }}
-      >
-        <div className="text-4xl">{r.emoji}</div>
-        <div className="text-xs text-gray-600">{r.sender}</div>
-      </motion.div>
-    );
-  })}
-</div>
+        {reactions.map((r) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: 0, scale: 0.8 }}
+            animate={{
+              opacity: 1,
+              y: -100,
+              scale: r.scale,
+              transition: { duration: 1.5, ease: 'easeOut' }
+            }}
+            exit={{ opacity: 0 }}
+            className="absolute text-center"
+            style={{ left: `${r.x}%` }}
+          >
+            <div className="text-4xl">{r.emoji}</div>
+            <div className="text-xs text-gray-600">{r.sender}</div>
+          </motion.div>
+        ))}
+      </div>
 
       <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6 relative">
         {/* Connection status */}
@@ -268,14 +265,12 @@ export default function ScrumPointingApp() {
           </div>
         ) : (
           <>
-            {/* Emoji bar */}
             <div className="flex gap-2 justify-center my-4 flex-wrap">
               {REACTION_EMOJIS.map((emoji, index) => (
                 <button key={index} className="text-2xl hover:scale-110 transition" onClick={() => sendReaction(emoji)}>{emoji}</button>
               ))}
             </div>
 
-            {/* User list */}
             <div className="mb-4 bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2">Users in this session:</h3>
               <div className="grid grid-cols-2 gap-2">
