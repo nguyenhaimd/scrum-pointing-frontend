@@ -330,7 +330,7 @@ export default function ScrumPointingApp() {
           {(showSidebar || width >= 1024) && (
             <div className="bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2 hidden lg:block">Users in this session</h3>
-              <div className="mb-3 text-sm text-center text-blue-700 font-medium">
+              <div className="text-sm text-center font-medium text-blue-700">
   ⏱️ Elapsed Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
 </div>
               <div className="grid grid-cols-1 gap-2">
