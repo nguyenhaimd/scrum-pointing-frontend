@@ -19,7 +19,7 @@ const MOOD_OPTIONS = {
   '💤': 'Tired',
   '🐢': 'Still thinking',
   '🚀': 'Let’s go',
-  '☕': 'Coffee',
+  '☕': 'Coffee'
 };
 const AVATAR_EMOJIS = [
   '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
@@ -37,58 +37,42 @@ export default function ScrumPointingApp() {
   const [selectedAvatar, setSelectedAvatar] = useState(
     AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
   );
-  const [myMood, setMyMood] = useState('😎');
   const [hasJoined, setHasJoined] = useState(false);
-
+  const [storyTitle, setStoryTitle] = useState('');
+  const [storyQueue, setStoryQueue] = useState([]);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [vote, setVote] = useState(null);
+  const [votes, setVotes] = useState({});
+  const [votesRevealed, setVotesRevealed] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
-
-  const [storyTitle, setStoryTitle] = useState('');
-  const [storyQueue, setStoryQueue] = useState([]);
-  const [sessionActive, setSessionActive] = useState(false);
-  const [votes, setVotes] = useState({});
-  const [vote, setVote] = useState(null);
-  const [votesRevealed, setVotesRevealed] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [voteStartTime, setVoteStartTime] = useState(null);
-  const [voteHistory, setVoteHistory] = useState([]);
-
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [globalStartTime, setGlobalStartTime] = useState(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
-
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [typingUsers, setTypingUsers] = useState([]);
   const [reactions, setReactions] = useState([]);
-
-  const [error, setError] = useState('');
+  const [typingUsers, setTypingUsers] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('connected');
+  const [error, setError] = useState('');
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showAbout, setShowAbout] = useState(false); // ✅ NEW for modal
-
+  const [myMood, setMyMood] = useState('😎');
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [globalStartTime, setGlobalStartTime] = useState(null);
+  const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
+  const [voteStartTime, setVoteStartTime] = useState(null);
+  const [voteHistory, setVoteHistory] = useState([]);
   const [width, height] = useWindowSize();
+  const [showAbout, setShowAbout] = useState(false);
   const chatRef = useRef(null);
 
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper = role === 'Developer';
   const isObserver = role === 'Observer' || role === 'Product Owner';
 
-  const totalDevelopers = participants.filter(
-    (p) => participantRoles[p] === 'Developer'
-  ).length;
-  const votesCast = participants.filter(
-    (p) => participantRoles[p] === 'Developer' && votes[p] !== null && votes[p] !== undefined
-  ).length;
-
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
+  const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
 
   const getConsensus = () => {
     const values = Object.entries(votes)
@@ -111,6 +95,8 @@ export default function ScrumPointingApp() {
       timer = setInterval(() => {
         setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
       }, 1000);
+    } else {
+      setElapsedSeconds(0);
     }
     return () => clearInterval(timer);
   }, [sessionStartTime]);
@@ -159,27 +145,25 @@ export default function ScrumPointingApp() {
       setVotes({});
       setVote(null);
       setVotesRevealed(false);
-      setSessionStartTime(Date.now());
       setVoteStartTime(Date.now());
+      setSessionStartTime(Date.now());
     });
 
-    socket.on('revealVotes', () => {
+    socket.on('revealVotes', ({ story }) => {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
 
       const consensus = getConsensus();
       const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
+
       setVoteHistory((prev) => {
-        const updated = [
-          ...prev,
-          {
-            story: storyTitle,
-            consensus,
-            duration: voteDuration,
-          },
-        ];
-        return updated.slice(-5); // Keep last 5
+        const newHistory = [...prev, {
+          story,
+          consensus,
+          duration: voteDuration
+        }];
+        return newHistory.slice(-5);
       });
     });
 
@@ -194,7 +178,7 @@ export default function ScrumPointingApp() {
     });
 
     socket.on('teamChat', ({ sender, text }) => {
-      setChatMessages((prev) => [...prev, { sender, text }]);
+      setChatMessages(prev => [...prev, { sender, text }]);
     });
 
     return () => {
@@ -244,23 +228,14 @@ export default function ScrumPointingApp() {
       setError('Team Name and Nickname are required.');
       return;
     }
-
     if (role === 'Scrum Master') {
-      const existingSM = participants.find((p) => participantRoles[p] === 'Scrum Master');
-      if (existingSM) {
+      const existingSMs = participants.filter(p => participantRoles[p] === 'Scrum Master');
+      if (existingSMs.length > 0) {
         setError('There is already a Scrum Master in this room.');
         return;
       }
     }
-
-    socket.emit('join', {
-      nickname,
-      room,
-      role,
-      avatar: selectedAvatar,
-      emoji: myMood,
-    });
-
+    socket.emit('join', { nickname, room, role, avatar: selectedAvatar, emoji: myMood });
     setHasJoined(true);
     setGlobalStartTime(Date.now());
   };
@@ -272,19 +247,6 @@ export default function ScrumPointingApp() {
 
   const revealVotes = () => socket.emit('revealVotes');
   const endSession = () => socket.emit('endSession');
-
-  const startSession = (title, index) => {
-    socket.emit('startSession', { title, room });
-    setStoryQueue(storyQueue.filter((_, i) => i !== index));
-  };
-
-  const addStoryToQueue = () => {
-    if (storyTitle.trim()) {
-      setStoryQueue((prev) => [...prev, storyTitle]);
-      setStoryTitle('');
-    }
-  };
-
   const initiateRevote = () => {
     socket.emit('startSession', { title: storyTitle, room });
     setVotes({});
@@ -292,22 +254,30 @@ export default function ScrumPointingApp() {
     setVotesRevealed(false);
     setSessionStartTime(Date.now());
   };
+  const addStoryToQueue = () => {
+    if (storyTitle.trim()) {
+      setStoryQueue([...storyQueue, storyTitle]);
+      setStoryTitle('');
+    }
+  };
+
+  const startSession = (title, index) => {
+    socket.emit('startSession', { title, room });
+    setStoryQueue(storyQueue.filter((_, i) => i !== index));
+  };
+
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* About Modal Toggle */}
-      <div className="absolute top-4 right-4 z-40">
-        <button
-          onClick={() => setShowAbout(true)}
-          className="bg-white text-sm border px-3 py-1 rounded shadow hover:bg-gray-100"
-        >
-          ❓ About
-        </button>
-      </div>
-
       {/* Floating Emoji Reactions */}
-      <div className="fixed inset-0 z-30 pointer-events-none">
+      <div className="fixed inset-0 z-50 pointer-events-none">
         {reactions.map((r) => (
           <motion.div
             key={r.id}
@@ -317,7 +287,7 @@ export default function ScrumPointingApp() {
               x: `${r.x}%`,
               y: `-${r.y}vh`,
               scale: r.scale,
-              transition: { duration: 1.5, ease: 'easeOut' },
+              transition: { duration: 1.5, ease: 'easeOut' }
             }}
             exit={{ opacity: 0 }}
             className="absolute text-center"
@@ -375,6 +345,11 @@ export default function ScrumPointingApp() {
       {hasJoined && (
         <div className="text-sm text-center mb-3 text-blue-700 font-medium">
           ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
+          {sessionActive && (
+            <span className="ml-4 text-purple-700">
+              🕓 Current Story Time: {formatTime(elapsedSeconds)}
+            </span>
+          )}
         </div>
       )}
 
@@ -418,7 +393,7 @@ export default function ScrumPointingApp() {
                   {voteHistory.slice(-5).reverse().map((item, i) => (
                     <li key={i} className="border-b pb-2 text-sm">
                       <div><strong>📝 {item.story}</strong></div>
-                      <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ') || 'N/A'}</span></div>
+                      <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ') || '—'}</span></div>
                       <div>⏱️ Time: {item.duration}s</div>
                     </li>
                   ))}
@@ -427,10 +402,10 @@ export default function ScrumPointingApp() {
             </div>
           )}
         </div>
-          {/* Main Panel */}
-          <div className="flex-1">
+            {/* Main Area */}
+            <div className="flex-1">
           {!hasJoined ? (
-            <div className="max-w-md mx-auto text-center mt-10">
+            <div className="max-w-md mx-auto text-center mt-12 bg-white p-6 rounded shadow">
               <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
               {error && <p className="text-red-500 mb-2">{error}</p>}
               <input className="p-2 border rounded w-full mb-2" placeholder="Team Name" value={room} onChange={(e) => setRoom(e.target.value)} />
@@ -455,9 +430,7 @@ export default function ScrumPointingApp() {
                   ))}
                 </div>
                 {typingUsers.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1 italic">
-                    {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
                 )}
                 <div className="mt-2 flex gap-2">
                   <input
@@ -563,8 +536,8 @@ export default function ScrumPointingApp() {
                   )}
                 </>
                 )}
-                  {!sessionActive && isScrumMaster && (
-                <div className="mb-6">
+                            {!sessionActive && isScrumMaster && (
+                <div className="mb-6 mt-6">
                   <input
                     className="p-2 border rounded w-full mb-2"
                     placeholder="Add story title"
@@ -604,41 +577,37 @@ export default function ScrumPointingApp() {
         </div>
       </div>
 
-      {/* ✅ ABOUT MODAL */}
+      {/* About Modal */}
       {showAbout && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg max-w-lg w-full shadow-lg relative">
-            <button
-              onClick={() => setShowAbout(false)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-black"
-            >
-              ✖
-            </button>
-            <h2 className="text-xl font-bold mb-4">📘 About This App</h2>
-            <ul className="list-disc list-inside text-sm space-y-1">
-              <li>✔ Real-time multi-user scrum pointing</li>
-              <li>✔ Role-based voting (Scrum Master, Developer, Observer, Product Owner)</li>
-              <li>✔ Confetti and sound on vote reveal</li>
-              <li>✔ Emoji reactions with nickname + floating animation</li>
-              <li>✔ Mood tracking via emoji selector</li>
-              <li>✔ Mobile-friendly layout with collapsible sidebar</li>
-              <li>✔ Voting progress viewable to Scrum Master + Observers</li>
-              <li>✔ Chat with typing indicators + emoji support</li>
-              <li>✔ Random avatars with dropdown selection</li>
-              <li>✔ Live session timer + elapsed vote timer</li>
-              <li>✔ Vote history with consensus + duration</li>
-              <li>✔ Revote + story queue + next story trigger</li>
-              <li>✔ Join/leave toast alerts</li>
-              <li>✔ Sidebar displays participants + roles + mood</li>
-              <li>✔ Custom team names, nicknames, and roles</li>
-              <li>✔ Fully animated, reactive UI using Tailwind</li>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-lg p-6 shadow-lg text-sm relative">
+            <button className="absolute top-2 right-2 text-gray-500 hover:text-black" onClick={() => setShowAbout(false)}>✖</button>
+            <h2 className="text-lg font-bold mb-2 text-center text-blue-700">About This App</h2>
+            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+              <li>⏱️ Real-time voting with timers</li>
+              <li>🙋 Role-based permissions (Scrum Master, Developer, Observer, Product Owner)</li>
+              <li>🎯 Vote consensus with tie handling</li>
+              <li>📚 Vote history with story titles, consensus, and duration</li>
+              <li>💬 Team chat and typing indicators</li>
+              <li>😎 Mood toggle with emojis</li>
+              <li>🎭 Custom avatars</li>
+              <li>🎉 Emoji reactions with animations</li>
+              <li>🌈 Confetti effects on reveal</li>
+              <li>📱 Mobile friendly & responsive layout</li>
+              <li>🧠 Built by <strong>HighWind</strong></li>
             </ul>
-            <p className="mt-4 text-xs text-right text-gray-500">
-              Built with ❤️ by <strong>HighWind</strong>
-            </p>
+            <div className="mt-4 text-center text-sm text-gray-500">Enjoy pointing! 🚀</div>
           </div>
         </div>
       )}
+
+      {/* Footer with About Button */}
+      <div className="mt-8 text-center text-xs text-gray-500">
+        <button onClick={() => setShowAbout(true)} className="underline hover:text-blue-600">
+          About This App
+        </button>
+        <span className="ml-2">| Developed with ❤️ by <strong>HighWind</strong></span>
+      </div>
     </div>
   );
-}            
+}
