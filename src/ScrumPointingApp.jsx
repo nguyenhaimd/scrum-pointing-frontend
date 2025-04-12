@@ -22,10 +22,11 @@ const MOOD_OPTIONS = {
   '☕': 'Coffee'
 };
 const AVATAR_EMOJIS = [
-  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵',
-  '🦄','🐙','🐳','🐢','🐤','🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
-  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏','🐑','🐐','🦌','🐓','🦃',
-  '🕊️','🐇','🐿️','🦝','🦛'
+  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
+  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
+  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
+  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
@@ -61,6 +62,7 @@ export default function ScrumPointingApp() {
   const [voteStartTime, setVoteStartTime] = useState(null);
   const [voteHistory, setVoteHistory] = useState([]);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showAbout, setShowAbout] = useState(false); // ⬅️ NEW STATE
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
 
@@ -93,16 +95,24 @@ export default function ScrumPointingApp() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
   useEffect(() => {
-    const timer = sessionStartTime && setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
-    }, 1000);
+    let timer;
+    if (sessionStartTime) {
+      timer = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
     return () => clearInterval(timer);
   }, [sessionStartTime]);
 
   useEffect(() => {
-    const globalTimer = globalStartTime && setInterval(() => {
-      setGlobalElapsedSeconds(Math.floor((Date.now() - globalStartTime) / 1000));
-    }, 1000);
+    let globalTimer;
+    if (globalStartTime) {
+      globalTimer = setInterval(() => {
+        setGlobalElapsedSeconds(Math.floor((Date.now() - globalStartTime) / 1000));
+      }, 1000);
+    }
     return () => clearInterval(globalTimer);
   }, [globalStartTime]);
 
@@ -122,19 +132,15 @@ export default function ScrumPointingApp() {
 
     socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
-
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
 
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
-      const x = Math.random() * 80 + 10;
-      const y = Math.random() * 60 + 10;
-      const scale = Math.random() * 0.5 + 1;
-      setReactions((prev) => [
-        ...prev,
-        { id, sender, emoji, x, y, scale }
-      ]);
+      const randomX = Math.random() * 80 + 10;
+      const randomY = Math.random() * 60 + 10;
+      const randomScale = Math.random() * 0.5 + 1;
+      setReactions((prev) => [...prev, { id, sender, emoji, x: randomX, y: randomY, scale: randomScale }]);
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 4000);
@@ -158,10 +164,9 @@ export default function ScrumPointingApp() {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
-
       const consensus = getConsensus();
       const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
-      setVoteHistory(prev => {
+      setVoteHistory((prev) => {
         const newEntry = { story: storyTitle, consensus, duration: voteDuration };
         return [...prev, newEntry].slice(-5);
       });
@@ -190,7 +195,6 @@ export default function ScrumPointingApp() {
       socket.off('sessionEnded');
     };
   }, [nickname, storyTitle, voteStartTime]);
-  
   const join = () => {
     if (!nickname.trim() || !room.trim()) {
       setError('Team Name and Nickname are required.');
@@ -214,6 +218,22 @@ export default function ScrumPointingApp() {
     socket.emit('vote', { nickname, point });
   };
 
+  const revealVotes = () => {
+    socket.emit('revealVotes');
+  };
+
+  const endSession = () => {
+    socket.emit('endSession');
+  };
+
+  const initiateRevote = () => {
+    socket.emit('startSession', { title: storyTitle, room });
+    setVotes({});
+    setVote(null);
+    setVotesRevealed(false);
+    setSessionStartTime(Date.now());
+  };
+
   const sendChatMessage = () => {
     if (chatInput.trim()) {
       socket.emit('teamChat', { room, sender: nickname, text: chatInput });
@@ -234,22 +254,6 @@ export default function ScrumPointingApp() {
     socket.emit('emojiReaction', { sender: nickname, emoji });
   };
 
-  const revealVotes = () => {
-    socket.emit('revealVotes');
-  };
-
-  const endSession = () => {
-    socket.emit('endSession');
-  };
-
-  const initiateRevote = () => {
-    socket.emit('startSession', { title: storyTitle, room });
-    setVotes({});
-    setVote(null);
-    setVotesRevealed(false);
-    setSessionStartTime(Date.now());
-  };
-
   const addStoryToQueue = () => {
     if (storyTitle.trim()) {
       setStoryQueue([...storyQueue, storyTitle]);
@@ -265,8 +269,50 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800">
       <Toaster position="top-right" reverseOrder={false} />
 
+      {/* ℹ️ About Modal */}
+      {showAbout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+            <h2 className="text-xl font-bold mb-3 text-blue-700">About This App</h2>
+            <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 text-left">
+              <li>🔒 Role-based access: Scrum Master, Developer, Observer, Product Owner</li>
+              <li>🧑‍🤝‍🧑 Nicknames, animal avatars & emoji mood toggle</li>
+              <li>📝 Scrum Master can add, start, or revote stories</li>
+              <li>🗳️ Developer-only voting w/ progress tracking</li>
+              <li>📊 Consensus result & vote history logging</li>
+              <li>💬 Team chat + typing indicator</li>
+              <li>🎉 Emoji reactions with animation</li>
+              <li>📱 Responsive layout + collapsible sidebar</li>
+              <li>⏱️ Global & story-specific timers</li>
+              <li>🛠️ Built with React, Tailwind, Socket.io</li>
+            </ul>
+            <p className="mt-4 text-sm text-center text-gray-500">
+              Developed by <strong>HighWind</strong>
+            </p>
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => setShowAbout(false)}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating About Button */}
+      <div className="fixed top-4 right-4 z-40">
+        <button
+          onClick={() => setShowAbout(true)}
+          className="bg-white border border-blue-500 text-blue-600 px-3 py-1 rounded-full shadow hover:bg-blue-100 text-sm"
+        >
+          ℹ️ About
+        </button>
+      </div>
+
       {/* Floating Emoji Reactions */}
-      <div className="fixed inset-0 z-50 pointer-events-none">
+      <div className="fixed inset-0 z-40 pointer-events-none">
         {reactions.map((r) => (
           <motion.div
             key={r.id}
@@ -291,13 +337,17 @@ export default function ScrumPointingApp() {
       {/* Mood Toggle */}
       {hasJoined && (
         <>
-          <div className="text-sm text-center font-medium mb-1 text-gray-700">Select Your Current Mood:</div>
-          <div className="flex justify-center gap-2 mb-4 flex-wrap">
+          <div className="text-sm text-center font-medium mb-1 text-gray-700">
+            Select Your Current Mood:
+          </div>
+          <div className="flex justify-center gap-2 mb-2 flex-wrap">
             {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
               <button
                 key={emoji}
                 onClick={() => updateMood(emoji)}
-                className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
+                className={`text-2xl px-2 py-1 rounded-full ${
+                  myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'
+                }`}
                 title={label}
               >
                 {emoji}
@@ -307,11 +357,13 @@ export default function ScrumPointingApp() {
         </>
       )}
 
-      {/* Emoji Buttons */}
+      {/* Emoji Reaction Buttons */}
       {hasJoined && (
         <>
-          <div className="text-sm text-center font-medium mt-2 mb-1 text-gray-700">Send a Quick Emoji Reaction:</div>
-          <div className="flex flex-wrap justify-center gap-3 mb-4">
+          <div className="text-sm text-center font-medium mt-4 mb-1 text-gray-700">
+            Send a Quick Emoji Reaction:
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 my-2">
             {REACTION_EMOJIS.map((emoji, index) => (
               <button
                 key={index}
@@ -328,18 +380,15 @@ export default function ScrumPointingApp() {
 
       {/* Timers */}
       {hasJoined && (
-        <div className="text-sm text-center mb-3 text-blue-700 font-medium">
+        <div className="text-sm text-center mb-4 text-blue-700 font-medium">
           ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
-          {sessionActive && (
-            <> | ⏳ Current Story: {formatTime(elapsedSeconds)}</>
-          )}
+          {sessionActive && <> | ⏳ Current Story: {formatTime(elapsedSeconds)}</>}
         </div>
       )}
-
-      <div className="flex flex-col lg:flex-row gap-4">
+         <div className="flex flex-col lg:flex-row gap-4">
         {/* Sidebar */}
-        <div className="lg:w-1/4 w-full">
-          {(showSidebar || width >= 1024) && hasJoined && (
+        <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
+          {(showSidebar || width >= 1024) && (
             <div className="bg-white border rounded p-3 shadow text-sm">
               <h3 className="font-semibold mb-2">Users in this session</h3>
               <div className="grid grid-cols-1 gap-2">
@@ -366,7 +415,11 @@ export default function ScrumPointingApp() {
                   {voteHistory.slice(-5).reverse().map((item, i) => (
                     <li key={i} className="border-b pb-2 text-sm">
                       <div><strong>📝 {item.story}</strong></div>
-                      <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ')}</span></div>
+                      <div>
+                        📊 Consensus: <span className="font-medium">
+                          {item.consensus?.length ? item.consensus.join(', ') : '—'}
+                        </span>
+                      </div>
                       <div>⏱️ Time: {item.duration}s</div>
                     </li>
                   ))}
@@ -376,11 +429,10 @@ export default function ScrumPointingApp() {
           )}
         </div>
 
-        {/* Main Panel */}
+        {/* Main content */}
         <div className="flex-1">
-          {/* Initial Join Screen */}
           {!hasJoined ? (
-            <div className="max-w-md mx-auto text-center">
+            <div className="max-w-md mx-auto text-center flex flex-col justify-center items-center min-h-[60vh]">
               <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
               {error && <p className="text-red-500 mb-2">{error}</p>}
               <input className="p-2 border rounded w-full mb-2" placeholder="Team Name" value={room} onChange={(e) => setRoom(e.target.value)} />
@@ -394,10 +446,14 @@ export default function ScrumPointingApp() {
               <div className="text-4xl mt-2 text-center">Selected Avatar: {selectedAvatar}</div>
               <button className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition" onClick={join}>Join</button>
             </div>
-          ) : (
+           ) : (
             <>
-                            {/* Team Chat */}
-                            <div className="text-left text-sm mb-4">
+              <div className="text-center mb-4 text-sm text-gray-700">
+                👤 Signed in as <strong>{nickname}</strong> ({role})
+              </div>
+
+              {/* Chat Section */}
+              <div className="text-left text-sm mb-4">
                 <h3 className="font-semibold mb-1">Team Chat</h3>
                 <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
                   {chatMessages.map((msg, i) => (
@@ -405,7 +461,9 @@ export default function ScrumPointingApp() {
                   ))}
                 </div>
                 {typingUsers.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
+                  <p className="text-xs text-gray-500 mt-1 italic">
+                    {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                  </p>
                 )}
                 <div className="mt-2 flex gap-2">
                   <input
@@ -436,7 +494,7 @@ export default function ScrumPointingApp() {
                           .filter(p => participantRoles[p] === 'Developer')
                           .map((p) => (
                             <li key={p}>
-                              {participantAvatars[p] || '❓'} {p} — {votes[p] ? '✅ Voted' : '⏳ Waiting'}
+                              {participantAvatars[p] || '❓'} {p} — {votes[p] != null ? '✅ Voted' : '⏳ Waiting'}
                             </li>
                           ))}
                       </ul>
@@ -463,8 +521,13 @@ export default function ScrumPointingApp() {
                     </div>
                   )}
 
-                  {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
+                  {vote && (
+                    <p className="text-green-600 text-lg font-semibold mb-4">
+                      You voted: {vote}
+                    </p>
+                  )}
 
+                  {/* Revealed Votes */}
                   {votesRevealed && (
                     <>
                       {showConfetti && <Confetti width={width} height={height} />}
@@ -493,6 +556,7 @@ export default function ScrumPointingApp() {
                     </>
                   )}
 
+                  {/* Scrum Master Controls */}
                   {isScrumMaster && (
                     <div className="flex justify-center flex-wrap gap-4 mt-6">
                       {!votesRevealed && (
@@ -511,27 +575,45 @@ export default function ScrumPointingApp() {
                     </div>
                   )}
                 </>
-              )}
-
-              {/* Scrum Master Story Input */}
-              {!sessionActive && isScrumMaster && (
+                )}
+                {/* Scrum Master adds stories when session is not active */}
+                {!sessionActive && isScrumMaster && (
                 <div className="mb-6">
-                  <input className="p-2 border rounded w-full mb-2" placeholder="Add story title" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} />
-                  <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
+                  <input
+                    className="p-2 border rounded w-full mb-2"
+                    placeholder="Add story title"
+                    value={storyTitle}
+                    onChange={(e) => setStoryTitle(e.target.value)}
+                  />
+                  <button
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    onClick={addStoryToQueue}
+                  >
+                    Add Story
+                  </button>
+
                   {storyQueue.length > 0 && (
                     <div className="mt-4">
                       <h3 className="font-semibold mb-2">Queued Stories:</h3>
                       {storyQueue.map((title, index) => (
-                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => startSession(title, index)}>▶️ {title}</button>
+                        <button
+                          key={index}
+                          className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded"
+                          onClick={() => startSession(title, index)}
+                        >
+                          ▶️ {title}
+                        </button>
                       ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Wait Message */}
+              {/* Other roles see waiting message */}
               {!sessionActive && !isScrumMaster && (
-                <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
+                <p className="text-gray-500 mt-4 text-center">
+                  ⏳ Waiting for Scrum Master to start the session...
+                </p>
               )}
             </>
           )}
@@ -539,4 +621,4 @@ export default function ScrumPointingApp() {
       </div>
     </div>
   );
-}
+}              
