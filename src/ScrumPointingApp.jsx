@@ -12,7 +12,7 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
 });
 
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
-const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master'];
+const ROLE_OPTIONS = ['Developer', 'Observer', 'Scrum Master', 'Product Owner'];
 const MOOD_OPTIONS = {
   '😎': 'Ready',
   '🧠': 'Focused',
@@ -22,11 +22,10 @@ const MOOD_OPTIONS = {
   '☕': 'Coffee'
 };
 const AVATAR_EMOJIS = [
-  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
-  '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
-  '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
-  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
-  '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
+  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵',
+  '🦄','🐙','🐳','🐢','🐤','🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
+  '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏','🐑','🐐','🦌','🐓','🦃',
+  '🕊️','🐇','🐿️','🦝','🦛'
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
@@ -34,7 +33,9 @@ export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('AFOSR Pega Developers');
   const [role, setRole] = useState('Developer');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]);
+  const [selectedAvatar, setSelectedAvatar] = useState(
+    AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
+  );
   const [hasJoined, setHasJoined] = useState(false);
   const [storyTitle, setStoryTitle] = useState('');
   const [storyQueue, setStoryQueue] = useState([]);
@@ -49,27 +50,26 @@ export default function ScrumPointingApp() {
   const [participantMoods, setParticipantMoods] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [reactions, setReactions] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
-  const [connectionStatus, setConnectionStatus] = useState('connected');
-  const [error, setError] = useState('');
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [reactions, setReactions] = useState([]);
   const [myMood, setMyMood] = useState('😎');
+  const [error, setError] = useState('');
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [globalStartTime, setGlobalStartTime] = useState(null);
   const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
-  const [width, height] = useWindowSize();
-  const [voteHistory, setVoteHistory] = useState([]);
   const [voteStartTime, setVoteStartTime] = useState(null);
+  const [voteHistory, setVoteHistory] = useState([]);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [width, height] = useWindowSize();
   const chatRef = useRef(null);
 
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper = role === 'Developer';
-  const isObserver = role === 'Observer';
+  const isObserver = role === 'Observer' || role === 'Product Owner';
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
-  const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
+  const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] != null).length;
 
   const getConsensus = () => {
     const values = Object.entries(votes)
@@ -87,28 +87,30 @@ export default function ScrumPointingApp() {
       .sort((a, b) => a - b);
   };
 
-  const consensusPoints = votesRevealed ? getConsensus() : [];
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
   useEffect(() => {
-    let timer;
-    if (sessionStartTime) {
-      timer = setInterval(() => {
-        setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
-      }, 1000);
-    } else {
-      setElapsedSeconds(0);
-    }
+    const timer = sessionStartTime && setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - sessionStartTime) / 1000));
+    }, 1000);
     return () => clearInterval(timer);
   }, [sessionStartTime]);
 
   useEffect(() => {
-    let timer;
-    if (globalStartTime) {
-      timer = setInterval(() => {
-        setGlobalElapsedSeconds(Math.floor((Date.now() - globalStartTime) / 1000));
-      }, 1000);
-    }
-    return () => clearInterval(timer);
+    const globalTimer = globalStartTime && setInterval(() => {
+      setGlobalElapsedSeconds(Math.floor((Date.now() - globalStartTime) / 1000));
+    }, 1000);
+    return () => clearInterval(globalTimer);
   }, [globalStartTime]);
+
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
 
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars, moods }) => {
@@ -120,22 +122,26 @@ export default function ScrumPointingApp() {
 
     socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
+
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
-    socket.on('connectionStatus', (status) => setConnectionStatus(status));
 
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
-      const randomX = Math.random() * 80 + 10;
-      const randomY = Math.random() * 60 + 10;
-      const randomScale = Math.random() * 0.5 + 1;
+      const x = Math.random() * 80 + 10;
+      const y = Math.random() * 60 + 10;
+      const scale = Math.random() * 0.5 + 1;
       setReactions((prev) => [
         ...prev,
-        { id, sender, emoji, x: randomX, y: randomY, scale: randomScale }
+        { id, sender, emoji, x, y, scale }
       ]);
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 4000);
+    });
+
+    socket.on('teamChat', ({ sender, text }) => {
+      setChatMessages(prev => [...prev, { sender, text }]);
     });
 
     socket.on('startSession', (title) => {
@@ -152,17 +158,13 @@ export default function ScrumPointingApp() {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
-      const consensus = getConsensus();
-const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
 
-setVoteHistory((prev) => {
-  const newHistory = [...prev, {
-    story: storyTitle,
-    consensus,
-    duration: voteDuration
-  }];
-  return newHistory.slice(-5); // keep only last 5
-});
+      const consensus = getConsensus();
+      const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
+      setVoteHistory(prev => {
+        const newEntry = { story: storyTitle, consensus, duration: voteDuration };
+        return [...prev, newEntry].slice(-5);
+      });
     });
 
     socket.on('sessionEnded', () => {
@@ -175,53 +177,21 @@ setVoteHistory((prev) => {
       setSessionStartTime(null);
     });
 
-    socket.on('teamChat', ({ sender, text }) => {
-      setChatMessages(prev => [...prev, { sender, text }]);
-    });
-
     return () => {
       socket.off('participantsUpdate');
       socket.off('userJoined');
       socket.off('userLeft');
       socket.off('updateVotes');
       socket.off('typingUpdate');
-      socket.off('connectionStatus');
       socket.off('emojiReaction');
+      socket.off('teamChat');
       socket.off('startSession');
       socket.off('revealVotes');
       socket.off('sessionEnded');
-      socket.off('teamChat');
     };
-  }, []);
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
-
-  const sendChatMessage = () => {
-    if (chatInput.trim()) {
-      socket.emit('teamChat', { room, sender: nickname, text: chatInput });
-      setChatInput('');
-    }
-  };
-
-  const sendReaction = (emoji) => {
-    socket.emit('emojiReaction', { sender: nickname, emoji });
-  };
-
-  const handleTyping = () => {
-    socket.emit('userTyping');
-  };
-
-  const updateMood = (emoji) => {
-    setMyMood(emoji);
-    socket.emit('updateMood', { nickname, emoji });
-  };
-
+  }, [nickname, storyTitle, voteStartTime]);
+  
   const join = () => {
-    setError('');
     if (!nickname.trim() || !room.trim()) {
       setError('Team Name and Nickname are required.');
       return;
@@ -233,6 +203,7 @@ setVoteHistory((prev) => {
         return;
       }
     }
+    setError('');
     socket.emit('join', { nickname, room, role, avatar: selectedAvatar, emoji: myMood });
     setHasJoined(true);
     setGlobalStartTime(Date.now());
@@ -243,12 +214,40 @@ setVoteHistory((prev) => {
     socket.emit('vote', { nickname, point });
   };
 
-  const revealVotes = () => socket.emit('revealVotes');
-  const endSession = () => socket.emit('endSession');
+  const sendChatMessage = () => {
+    if (chatInput.trim()) {
+      socket.emit('teamChat', { room, sender: nickname, text: chatInput });
+      setChatInput('');
+    }
+  };
 
-  const startSession = (title, index) => {
-    socket.emit('startSession', { title, room });
-    setStoryQueue(storyQueue.filter((_, i) => i !== index));
+  const handleTyping = () => {
+    socket.emit('userTyping');
+  };
+
+  const updateMood = (emoji) => {
+    setMyMood(emoji);
+    socket.emit('updateMood', { nickname, emoji });
+  };
+
+  const sendReaction = (emoji) => {
+    socket.emit('emojiReaction', { sender: nickname, emoji });
+  };
+
+  const revealVotes = () => {
+    socket.emit('revealVotes');
+  };
+
+  const endSession = () => {
+    socket.emit('endSession');
+  };
+
+  const initiateRevote = () => {
+    socket.emit('startSession', { title: storyTitle, room });
+    setVotes({});
+    setVote(null);
+    setVotesRevealed(false);
+    setSessionStartTime(Date.now());
   };
 
   const addStoryToQueue = () => {
@@ -258,12 +257,9 @@ setVoteHistory((prev) => {
     }
   };
 
-  const initiateRevote = () => {
-    socket.emit('startSession', { title: storyTitle, room });
-    setVotes({});
-    setVote(null);
-    setVotesRevealed(false);
-    setSessionStartTime(Date.now());
+  const startSession = (title, index) => {
+    socket.emit('startSession', { title, room });
+    setStoryQueue(storyQueue.filter((_, i) => i !== index));
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800">
@@ -294,72 +290,58 @@ setVoteHistory((prev) => {
 
       {/* Mood Toggle */}
       {hasJoined && (
-  <>
-    <div className="text-sm text-center font-medium mb-1 text-gray-700">
-      Select Your Current Mood:
-    </div>
-    <div className="flex justify-center gap-2 mb-2 flex-wrap">
-      {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
-        <button
-          key={emoji}
-          onClick={() => updateMood(emoji)}
-          className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
-          title={label}
-        >
-          {emoji}
-        </button>
-      ))}
-    </div>
-  </>
-)}
+        <>
+          <div className="text-sm text-center font-medium mb-1 text-gray-700">Select Your Current Mood:</div>
+          <div className="flex justify-center gap-2 mb-4 flex-wrap">
+            {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+              <button
+                key={emoji}
+                onClick={() => updateMood(emoji)}
+                className={`text-2xl px-2 py-1 rounded-full ${myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'}`}
+                title={label}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Emoji Buttons */}
       {hasJoined && (
-  <>
-    <div className="text-sm text-center font-medium mt-4 mb-1 text-gray-700">
-      Send a Quick Emoji Reaction:
-    </div>
-    <div className="flex flex-wrap justify-center gap-3 my-2">
-      {REACTION_EMOJIS.map((emoji, index) => (
-        <button
-          key={index}
-          className="text-2xl hover:scale-125 transition"
-          onClick={() => sendReaction(emoji)}
-          title={`React with ${emoji}`}
-        >
-          {emoji}
-        </button>
-      ))}
-    </div>
-  </>
-)}
+        <>
+          <div className="text-sm text-center font-medium mt-2 mb-1 text-gray-700">Send a Quick Emoji Reaction:</div>
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            {REACTION_EMOJIS.map((emoji, index) => (
+              <button
+                key={index}
+                className="text-2xl hover:scale-125 transition"
+                onClick={() => sendReaction(emoji)}
+                title={`React with ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* Timer */}
-      {hasJoined && sessionActive && (
+      {/* Timers */}
+      {hasJoined && (
         <div className="text-sm text-center mb-3 text-blue-700 font-medium">
-          ⏱️ Current Story Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+          ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
+          {sessionActive && (
+            <> | ⏳ Current Story: {formatTime(elapsedSeconds)}</>
+          )}
         </div>
       )}
 
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Sidebar */}
-        <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
-          <div className="flex lg:hidden justify-between items-center mb-2">
-            <span className="font-semibold">Users in this session</span>
-            <button
-              className="text-sm text-blue-600 underline"
-              onClick={() => setShowSidebar(!showSidebar)}
-            >
-              {showSidebar ? 'Hide' : 'Show'}
-            </button>
-          </div>
-
-          {(showSidebar || width >= 1024) && (
+        <div className="lg:w-1/4 w-full">
+          {(showSidebar || width >= 1024) && hasJoined && (
             <div className="bg-white border rounded p-3 shadow text-sm">
-              <h3 className="font-semibold mb-2 hidden lg:block">Users in this session</h3>
-              <div className="mb-3 text-sm text-center text-blue-700 font-medium">
-  ⏱️ Elapsed Time: {Math.floor(globalElapsedSeconds / 60)}:{(globalElapsedSeconds % 60).toString().padStart(2, '0')}
-</div>
+              <h3 className="font-semibold mb-2">Users in this session</h3>
               <div className="grid grid-cols-1 gap-2">
                 {participants.map((p) => (
                   <div key={p} className="flex items-center gap-2 border-b pb-1">
@@ -374,28 +356,29 @@ setVoteHistory((prev) => {
                 ))}
               </div>
 
-              {/* Vote History Section */}
-<div className="mt-6 border-t pt-3">
-  <h3 className="font-semibold mb-2">📘 Vote History</h3>
-  {voteHistory.length === 0 && (
-    <p className="text-gray-500 text-sm">No votes yet</p>
-  )}
-  <ul className="space-y-2">
-    {voteHistory.slice(-5).reverse().map((item, i) => (
-      <li key={i} className="border-b pb-2 text-sm">
-        <div><strong>📝 {item.story}</strong></div>
-        <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ')}</span></div>
-        <div>⏱️ Time: {item.duration}s</div>
-      </li>
-    ))}
-  </ul>
-</div>
+              {/* Vote History */}
+              <div className="mt-6 border-t pt-3">
+                <h3 className="font-semibold mb-2">📘 Vote History</h3>
+                {voteHistory.length === 0 && (
+                  <p className="text-gray-500 text-sm">No votes yet</p>
+                )}
+                <ul className="space-y-2">
+                  {voteHistory.slice(-5).reverse().map((item, i) => (
+                    <li key={i} className="border-b pb-2 text-sm">
+                      <div><strong>📝 {item.story}</strong></div>
+                      <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ')}</span></div>
+                      <div>⏱️ Time: {item.duration}s</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Main Area */}
+        {/* Main Panel */}
         <div className="flex-1">
+          {/* Initial Join Screen */}
           {!hasJoined ? (
             <div className="max-w-md mx-auto text-center">
               <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
@@ -413,8 +396,8 @@ setVoteHistory((prev) => {
             </div>
           ) : (
             <>
-              {/* Chat Section */}
-              <div className="text-left text-sm mb-4">
+                            {/* Team Chat */}
+                            <div className="text-left text-sm mb-4">
                 <h3 className="font-semibold mb-1">Team Chat</h3>
                 <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
                   {chatMessages.map((msg, i) => (
@@ -439,6 +422,7 @@ setVoteHistory((prev) => {
                 </div>
               </div>
 
+              {/* Voting Area */}
               {sessionActive && (
                 <>
                   <h2 className="text-xl font-bold mb-4 text-blue-800">Voting for: {storyTitle}</h2>
@@ -496,14 +480,14 @@ setVoteHistory((prev) => {
                             ))}
                         </ul>
                       </div>
-                      {consensusPoints.length > 0 && (
+                      {getConsensus().length > 0 && (
                         <motion.p
                           className="text-lg text-center mt-4 text-green-700 font-bold"
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.6 }}
                         >
-                          📊 Consensus: {consensusPoints.join(', ')} point{consensusPoints.length > 1 ? 's' : ''}
+                          📊 Consensus: {getConsensus().join(', ')} point{getConsensus().length > 1 ? 's' : ''}
                         </motion.p>
                       )}
                     </>
@@ -529,6 +513,7 @@ setVoteHistory((prev) => {
                 </>
               )}
 
+              {/* Scrum Master Story Input */}
               {!sessionActive && isScrumMaster && (
                 <div className="mb-6">
                   <input className="p-2 border rounded w-full mb-2" placeholder="Add story title" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} />
@@ -544,6 +529,7 @@ setVoteHistory((prev) => {
                 </div>
               )}
 
+              {/* Wait Message */}
               {!sessionActive && !isScrumMaster && (
                 <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
               )}
@@ -554,4 +540,3 @@ setVoteHistory((prev) => {
     </div>
   );
 }
-
