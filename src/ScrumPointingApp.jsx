@@ -60,6 +60,8 @@ export default function ScrumPointingApp() {
   const [globalStartTime, setGlobalStartTime] = useState(null);
   const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
   const [width, height] = useWindowSize();
+  const [voteHistory, setVoteHistory] = useState([]);
+  const [voteStartTime, setVoteStartTime] = useState(null);
   const chatRef = useRef(null);
 
   const isScrumMaster = role === 'Scrum Master';
@@ -142,6 +144,7 @@ export default function ScrumPointingApp() {
       setVotes({});
       setVote(null);
       setVotesRevealed(false);
+      setVoteStartTime(Date.now());
       setSessionStartTime(Date.now());
     });
 
@@ -149,6 +152,17 @@ export default function ScrumPointingApp() {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
+      const consensus = getConsensus();
+const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
+
+setVoteHistory((prev) => {
+  const newHistory = [...prev, {
+    story: storyTitle,
+    consensus,
+    duration: voteDuration
+  }];
+  return newHistory.slice(-5); // keep only last 5
+});
     });
 
     socket.on('sessionEnded', () => {
@@ -323,7 +337,7 @@ export default function ScrumPointingApp() {
       {/* Timer */}
       {hasJoined && sessionActive && (
         <div className="text-sm text-center mb-3 text-blue-700 font-medium">
-          ⏱️ Current Session Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
+          ⏱️ Current Story Time: {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}
         </div>
       )}
 
@@ -359,6 +373,23 @@ export default function ScrumPointingApp() {
                   </div>
                 ))}
               </div>
+
+              {/* Vote History Section */}
+<div className="mt-6 border-t pt-3">
+  <h3 className="font-semibold mb-2">📘 Vote History</h3>
+  {voteHistory.length === 0 && (
+    <p className="text-gray-500 text-sm">No votes yet</p>
+  )}
+  <ul className="space-y-2">
+    {voteHistory.slice(-5).reverse().map((item, i) => (
+      <li key={i} className="border-b pb-2 text-sm">
+        <div><strong>📝 {item.story}</strong></div>
+        <div>📊 Consensus: <span className="font-medium">{item.consensus.join(', ')}</span></div>
+        <div>⏱️ Time: {item.duration}s</div>
+      </li>
+    ))}
+  </ul>
+</div>
             </div>
           )}
         </div>
