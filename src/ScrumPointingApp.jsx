@@ -165,8 +165,20 @@ export default function ScrumPointingApp() {
       setSessionStartTime(null);
     });
 
-    socket.on('teamChat', ({ sender, text }) => {
-      setChatMessages(prev => [...prev, { sender, text }]);
+    socket.on('teamChat', (msg) => {
+      setChatMessages((prev) => {
+        if (msg.type === 'voteSummary') {
+          const collapsed = prev.map((m) => {
+            if (m.type === 'voteSummary') {
+              return { ...m, summary: { ...m.summary, expand: false } };
+            }
+            return m;
+          });
+          return [...collapsed, msg];
+        } else {
+          return [...prev, msg];
+        }
+      });
     });
 
     return () => {
@@ -233,7 +245,42 @@ export default function ScrumPointingApp() {
     socket.emit('vote', { nickname, point });
   };
 
-  const revealVotes = () => socket.emit('revealVotes');
+  const revealVotes = () => {
+    socket.emit('revealVotes');
+  
+    const consensus = getConsensus();
+    const voteSummary = {
+      story: storyTitle || 'Untitled Story',
+      votes: participants
+        .filter(p => participantRoles[p] === 'Developer')
+        .map(p => ({
+          name: p,
+          avatar: participantAvatars[p] || '❓',
+          point: votes[p] !== null ? votes[p] : '—'
+        })),
+      consensus,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      expand: true,
+    };
+  
+    // Collapse all old summaries and add the new one
+    setChatMessages((prev) => {
+      const updated = prev.map((m) => {
+        if (m.type === 'voteSummary') {
+          return { ...m, summary: { ...m.summary, expand: false } };
+        }
+        return m;
+      });
+      return [...updated, { sender: 'System', type: 'voteSummary', summary: voteSummary }];
+    });
+  
+    // Broadcast to others in the room
+    socket.emit('teamChat', {
+      sender: 'System',
+      type: 'voteSummary',
+      summary: voteSummary
+    });
+  };
   const endSession = () => socket.emit('endSession');
 
   const startSession = (title, index) => {
@@ -404,12 +451,53 @@ export default function ScrumPointingApp() {
             <>
               {/* Chat Section */}
               <div className="text-left text-sm mb-4">
-                <h3 className="font-semibold mb-1">Team Chat</h3>
-                <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2">
-                  {chatMessages.map((msg, i) => (
-                    <div key={i}><strong>{msg.sender}:</strong> {msg.text}</div>
-                  ))}
-                </div>
+                  <h3 className="font-semibold mb-1">Team Chat</h3>
+                  
+                  <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2 space-y-2">
+  {chatMessages.map((msg, i) => {
+    if (msg.type === 'voteSummary') {
+      const { summary } = msg;
+      return (
+        <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs">
+          <div className="font-semibold flex justify-between items-center">
+            📝 Summary for "{summary.story}" at {summary.timestamp}
+            <button
+              onClick={() => {
+                setChatMessages((prev) =>
+                  prev.map((m, idx) =>
+                    idx === i
+                      ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
+                      : m
+                  )
+                );
+              }}
+              className="text-blue-600 underline ml-2 text-xs"
+            >
+              {summary.expand ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {summary.expand && (
+            <div className="mt-1">
+              <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
+              <ul className="list-disc ml-4">
+                {summary.votes.map((v, idx) => (
+                  <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      return (
+        <div key={i} className="text-sm">
+          <strong>{msg.sender}:</strong> {msg.text}
+        </div>
+      );
+    }
+  })}
+</div>
+                  
                 {typingUsers.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
                 )}
