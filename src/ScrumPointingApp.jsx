@@ -291,14 +291,14 @@ export default function ScrumPointingApp() {
 
       {/* Header - Current User Info */}
       {hasJoined && (
-        <div className="absolute top-2 right-4 bg-white px-3 py-2 rounded shadow text-sm text-right">
-          <div className="text-xs text-gray-500">You are logged in as:</div>
-          <div className="text-md">
-            <span className="text-2xl">{currentUserInfo.avatar}</span>{' '}
-            <span className="font-bold">{currentUserInfo.nickname}</span>{' '}
-            <span className="text-gray-600">({currentUserInfo.role})</span>
-          </div>
-        </div>
+       <div className="fixed top-2 right-2 left-2 md:top-2 md:right-4 md:left-auto z-30 bg-white px-3 py-2 rounded shadow text-sm text-center md:text-right max-w-sm mx-auto md:max-w-none">
+       <div className="text-xs text-gray-500">You are logged in as:</div>
+       <div className="text-md">
+         <span className="text-2xl">{currentUserInfo.avatar}</span>{' '}
+         <span className="font-bold">{currentUserInfo.nickname}</span>{' '}
+         <span className="text-gray-600">({currentUserInfo.role})</span>
+       </div>
+     </div>
       )}
           {/* Mood Toggle */}
           {hasJoined && (
