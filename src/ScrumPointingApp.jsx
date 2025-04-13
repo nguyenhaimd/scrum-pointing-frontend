@@ -454,15 +454,16 @@ export default function ScrumPointingApp() {
                   <h3 className="font-semibold mb-1">Team Chat</h3>
                   
                   <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2 space-y-2">
-                  {chatMessages.map((msg, i) => {
-  // ✅ Skip any message that has neither type nor text (likely blank system message)
-  if (!msg.type && !msg.text) return null;
 
-  // 📝 Vote summary block
-  if (msg.type === 'voteSummary') {
+                  {chatMessages.map((msg, i) => {
+  // 🛡️ Skip rendering any empty system messages
+  if ((!msg.text && !msg.type) || (!msg.text && msg.sender === 'System')) return null;
+
+  // ✅ Render vote summaries (for Scrum Master only)
+  if (msg.type === 'voteSummary' && isScrumMaster) {
     const { summary } = msg;
     return (
-      <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs">
+      <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs mt-2">
         <div className="font-semibold flex justify-between items-center">
           📝 Summary for "{summary.story}" at {summary.timestamp}
           <button
@@ -471,7 +472,7 @@ export default function ScrumPointingApp() {
                 prev.map((m, idx) =>
                   idx === i
                     ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
-                    : m
+                    : { ...m, summary: { ...m.summary, expand: false } } // collapse others
                 )
               );
             }}
@@ -494,7 +495,7 @@ export default function ScrumPointingApp() {
     );
   }
 
-  // 💬 Regular chat message
+  // 💬 Default regular chat messages
   return (
     <div key={i} className="text-sm">
       <strong>{msg.sender}:</strong> {msg.text}
