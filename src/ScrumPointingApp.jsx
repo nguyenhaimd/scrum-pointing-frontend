@@ -149,10 +149,50 @@ export default function ScrumPointingApp() {
       setSessionStartTime(Date.now());
     });
 
-    socket.on('revealVotes', () => {
+    socket.on('revealVotes', ({ story, votes }) => {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
+    
+      const consensus = getConsensus();
+      const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
+    
+      // Build developer votes
+      const voteDetails = participants
+        .filter((p) => participantRoles[p] === 'Developer')
+        .map((p) => ({
+          name: p,
+          point: votes[p],
+          avatar: participantAvatars[p] || '❓'
+        }));
+    
+      // Push a new chat message of type voteSummary
+      setChatMessages((prev) => {
+        const newMsg = {
+          type: 'voteSummary',
+          summary: {
+            story: story || storyTitle,
+            consensus,
+            votes: voteDetails,
+            timestamp: new Date().toLocaleTimeString(),
+            expand: true
+          }
+        };
+        // Collapse older summaries
+        return prev.map((m) =>
+          m.type === 'voteSummary' ? { ...m, summary: { ...m.summary, expand: false } } : m
+        ).concat(newMsg);
+      });
+    
+      // Optional: Update vote history sidebar if re-added later
+      setVoteHistory((prev) => {
+        const newHistory = [...prev, {
+          story: story || storyTitle,
+          consensus,
+          duration: voteDuration
+        }];
+        return newHistory.slice(-5);
+      });
     });
 
     socket.on('sessionEnded', () => {
