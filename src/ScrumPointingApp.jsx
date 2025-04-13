@@ -453,40 +453,46 @@ export default function ScrumPointingApp() {
               <div className="text-left text-sm mb-4">
                   <h3 className="font-semibold mb-1">Team Chat</h3>
                   
-                  <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2 space-y-2">
+                  <div
+  ref={chatRef}
+  className="max-h-64 md:max-h-80 overflow-y-auto bg-gray-50 border rounded p-2 space-y-2"
+>
+
   {chatMessages.map((msg, i) => {
     if (msg.type === 'voteSummary') {
       const { summary } = msg;
       return (
+
         <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs">
-          <div className="font-semibold flex justify-between items-center">
-            📝 Summary for "{summary.story}" at {summary.timestamp}
-            <button
-              onClick={() => {
-                setChatMessages((prev) =>
-                  prev.map((m, idx) =>
-                    idx === i
-                      ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
-                      : m
-                  )
-                );
-              }}
-              className="text-blue-600 underline ml-2 text-xs"
-            >
-              {summary.expand ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {summary.expand && (
-            <div className="mt-1">
-              <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
-              <ul className="list-disc ml-4">
-                {summary.votes.map((v, idx) => (
-                  <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+  <div className="font-semibold flex justify-between items-center flex-wrap gap-1">
+    📝 Summary for "{summary.story}" at {summary.timestamp}
+    <button
+      onClick={() => {
+        setChatMessages((prev) =>
+          prev.map((m, idx) =>
+            idx === i
+              ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
+              : m
+          )
+        );
+      }}
+      className="text-blue-600 underline text-xs"
+    >
+      {summary.expand ? 'Hide' : 'Show'}
+    </button>
+  </div>
+  {summary.expand && (
+    <div className="mt-1 space-y-1">
+      <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
+      <ul className="list-disc ml-4">
+        {summary.votes.map((v, idx) => (
+          <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
+
       );
     } else {
       return (
