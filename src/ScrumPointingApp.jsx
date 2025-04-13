@@ -465,7 +465,7 @@ export default function ScrumPointingApp() {
     return (
       <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs mt-2">
         <div className="font-semibold flex justify-between items-center">
-          📝 Summary for "{summary.story}" at {summary.timestamp}
+          📝 Summary for "{summary.story}"
           <button
             onClick={() => {
               setChatMessages((prev) =>
