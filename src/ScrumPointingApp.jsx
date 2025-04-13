@@ -60,17 +60,17 @@ export default function ScrumPointingApp() {
   const [globalStartTime, setGlobalStartTime] = useState(null);
   const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
   const [voteStartTime, setVoteStartTime] = useState(null);
-  const [voteHistory, setVoteHistory] = useState([]);
   const [currentUserInfo, setCurrentUserInfo] = useState({});
+  const [showAbout, setShowAbout] = useState(false);
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
-
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper = role === 'Developer';
   const isObserver = role === 'Observer' || role === 'Product Owner';
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
+
   const getConsensus = () => {
     const values = Object.entries(votes)
       .filter(([u]) => participantRoles[u] === 'Developer')
@@ -149,21 +149,12 @@ export default function ScrumPointingApp() {
       setSessionStartTime(Date.now());
     });
 
-    socket.on('revealVotes', ({ story }) => {
+    socket.on('revealVotes', () => {
       setVotesRevealed(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
-      const consensus = getConsensus();
-      const voteDuration = voteStartTime ? Math.floor((Date.now() - voteStartTime) / 1000) : 0;
-      setVoteHistory((prev) => {
-        const newHistory = [...prev, {
-          story: story || storyTitle,
-          consensus,
-          duration: voteDuration
-        }];
-        return newHistory.slice(-5);
-      });
     });
+
     socket.on('sessionEnded', () => {
       setSessionActive(false);
       setStoryTitle('');
@@ -198,7 +189,6 @@ export default function ScrumPointingApp() {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatMessages]);
-
   const sendChatMessage = () => {
     if (chatInput.trim()) {
       socket.emit('teamChat', { room, sender: nickname, text: chatInput });
@@ -271,6 +261,7 @@ export default function ScrumPointingApp() {
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
       <Toaster position="top-right" reverseOrder={false} />
@@ -309,9 +300,8 @@ export default function ScrumPointingApp() {
           </div>
         </div>
       )}
-
-      {/* Mood Toggle */}
-      {hasJoined && (
+          {/* Mood Toggle */}
+          {hasJoined && (
         <>
           <div className="text-sm text-center font-medium mb-1 text-gray-700 mt-2">
             Select Your Current Mood:
@@ -358,7 +348,7 @@ export default function ScrumPointingApp() {
           ⏱️ Current Story Time: {formatTime(elapsedSeconds)}
         </div>
       )}
-            <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Sidebar */}
         <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
           <div className="flex lg:hidden justify-between items-center mb-2">
@@ -390,28 +380,11 @@ export default function ScrumPointingApp() {
                   </div>
                 ))}
               </div>
-
-              {/* Vote History Section */}
-              <div className="mt-6 border-t pt-3">
-                <h3 className="font-semibold mb-2">📘 Vote History</h3>
-                {voteHistory.length === 0 && (
-                  <p className="text-gray-500 text-sm">No votes yet</p>
-                )}
-                <ul className="space-y-2">
-                  {voteHistory.slice(-5).reverse().map((item, i) => (
-                    <li key={i} className="border-b pb-2 text-sm">
-                      <div><strong>📝 {item.story || 'Untitled Story'}</strong></div>
-                      <div>📊 Consensus: <span className="font-medium">{item.consensus?.length > 0 ? item.consensus.join(', ') : '–'}</span></div>
-                      <div>⏱️ Time: {item.duration}s</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
           )}
         </div>
-        {/* Main Area */}
-        <div className="flex-1">
+            {/* Main Area */}
+            <div className="flex-1">
           {!hasJoined ? (
             <div className="max-w-md mx-auto text-center">
               <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
@@ -543,9 +516,8 @@ export default function ScrumPointingApp() {
                     </div>
                   )}
                 </>
-              )}
-
-              {!sessionActive && isScrumMaster && (
+                )}
+                     {!sessionActive && isScrumMaster && (
                 <div className="mb-6">
                   <input className="p-2 border rounded w-full mb-2" placeholder="Add story title" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} />
                   <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
@@ -564,33 +536,45 @@ export default function ScrumPointingApp() {
                 <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
               )}
 
+              {/* About Modal */}
               <div className="text-center mt-6">
                 <button
                   className="text-xs text-gray-500 underline"
-                  onClick={() => alert(
-`About This App:
-
-✅ Real-time multiplayer pointing
-✅ Multiple roles: Developer, Observer, Scrum Master, Product Owner
-✅ Live emoji reactions
-✅ Mood toggles
-✅ Confetti reveal
-✅ Consensus tracking
-✅ Vote history (with story name, consensus, duration)
-✅ Team chat + typing indicator
-✅ Responsive UI & mobile friendly
-
-Built with 💙 by HighWind.`
-                  )}
+                  onClick={() => {
+                    const modal = document.getElementById('about-modal');
+                    if (modal) modal.showModal();
+                  }}
                 >
                   About
                 </button>
               </div>
+
+              <dialog id="about-modal" className="rounded-xl p-6 max-w-lg w-full shadow-xl border bg-white text-sm text-left">
+                <form method="dialog" className="space-y-3">
+                  <h2 className="text-lg font-semibold text-blue-700">About This App</h2>
+                  <ul className="list-disc list-inside text-gray-700">
+                    <li>✅ Real-time multiplayer pointing</li>
+                    <li>✅ Roles: Developer, Observer, Scrum Master, Product Owner</li>
+                    <li>✅ Live emoji reactions & mood status</li>
+                    <li>✅ Confetti & animated consensus</li>
+                    <li>✅ Revoting support</li>
+                    <li>✅ Session timer & story timer</li>
+                    <li>✅ Team chat + typing indicators</li>
+                    <li>✅ Responsive design for mobile & desktop</li>
+                    <li>✅ Avatar & emoji personalization</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-gray-500">
+                    Built with 💙 by <strong>HighWind</strong>
+                  </p>
+                  <div className="text-right mt-4">
+                    <button className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">Close</button>
+                  </div>
+                </form>
+              </dialog>
             </>
           )}
         </div>
       </div>
     </div>
   );
-}        
-    
+}       
