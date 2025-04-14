@@ -119,6 +119,7 @@ export default function ScrumPointingApp() {
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
+
     });
 
     socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
@@ -126,6 +127,10 @@ export default function ScrumPointingApp() {
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
     socket.on('connectionStatus', (status) => setConnectionStatus(status));
+
+    socket.on('rejoinedGracefully', ({ nickname }) => {
+      toast.success(`✅ Welcome back, ${nickname}! You’ve rejoined the session.`);
+    });
 
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
@@ -195,6 +200,7 @@ export default function ScrumPointingApp() {
       socket.off('revealVotes');
       socket.off('sessionEnded');
       socket.off('teamChat');
+      socket.off('rejoinedGracefully');
     };
   }, []);
 
