@@ -140,7 +140,8 @@ export default function ScrumPointingApp() {
     acc[name] = connected?.includes(name);
     return acc;
   }, {});
-  setParticipantConnections(connectionMap);
+      setParticipantConnections(connectionMap);
+
     });
 
     
@@ -149,16 +150,6 @@ export default function ScrumPointingApp() {
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
-
-    socket.on('connectionStatus', (status) => {
-      setConnectionStatus(status);
-      if (status === 'disconnected') {
-        setShowReconnectModal(true);
-      } else {
-        if (showReconnectModal) toast.success('✅ Reconnected!');
-        setShowReconnectModal(false);
-      }
-    });
 
     socket.on('rejoinedGracefully', ({ nickname }) => {
       toast.success(`✅ Welcome back, ${nickname}! You’ve rejoined the session.`);
@@ -218,6 +209,16 @@ export default function ScrumPointingApp() {
           return [...prev, msg];
         }
       });
+    });
+
+    socket.on('connect', () => {
+      setConnectionStatus('connected');
+      setShowReconnectModal(false);
+    });
+    
+    socket.on('disconnect', () => {
+      setConnectionStatus('disconnected');
+      setShowReconnectModal(true);
     });
 
     return () => {
