@@ -675,7 +675,17 @@ export default function ScrumPointingApp() {
                 )}
                      {!sessionActive && isScrumMaster && (
                 <div className="mb-6">
-                  <input className="p-2 border rounded w-full mb-2" placeholder="Add story title" value={storyTitle} onChange={(e) => setStoryTitle(e.target.value)} />
+                    
+                    <input
+  className="p-2 border rounded w-full mb-2"
+  placeholder="Add story title"
+  value={storyTitle}
+  onChange={(e) => setStoryTitle(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter') addStoryToQueue();
+  }}
+/>
+                    
                   <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
                   {storyQueue.length > 0 && (
                     <div className="mt-4">
