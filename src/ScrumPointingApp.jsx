@@ -121,7 +121,13 @@ export default function ScrumPointingApp() {
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
-      setParticipantConnections(connected || {});
+
+      // ✅ Correct mapping: nickname → true/false
+  const connectionMap = names.reduce((acc, name) => {
+    acc[name] = connected?.includes(name);
+    return acc;
+  }, {});
+  setParticipantConnections(connectionMap);
     });
 
     
