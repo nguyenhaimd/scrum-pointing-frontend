@@ -71,6 +71,8 @@ export default function ScrumPointingApp() {
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
 
+  const [myVoteHistory, setMyVoteHistory] = useState([]);  
+
   const getConsensus = () => {
     const values = Object.entries(votes)
       .filter(([u]) => participantRoles[u] === 'Developer')
@@ -243,6 +245,12 @@ export default function ScrumPointingApp() {
   const castVote = (point) => {
     setVote(point);
     socket.emit('vote', { nickname, point });
+  
+    // Add to personal vote history
+    setMyVoteHistory(prev => [
+      ...prev,
+      { story: storyTitle || 'Untitled Story', point }
+    ]);
   };
 
   const revealVotes = () => {
@@ -427,6 +435,23 @@ export default function ScrumPointingApp() {
                   </div>
                 ))}
               </div>
+              
+              {isDeveloper && (
+  <div className="mt-6 border-t pt-3">
+    <h3 className="font-semibold mb-2 text-blue-700">🗂 My Vote History</h3>
+    {myVoteHistory.length === 0 && (
+      <p className="text-gray-500 text-sm">No votes yet</p>
+    )}
+    <ul className="text-sm space-y-1">
+      {myVoteHistory.map((item, i) => (
+        <li key={i}>
+          <span className="font-medium">{item.story}</span>: <span className="text-blue-600">{item.point}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
             </div>
           )}
         </div>
