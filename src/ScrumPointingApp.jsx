@@ -372,7 +372,7 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
       <Toaster position="top-right" reverseOrder={false} />
 
-      {showReconnectModal && (
+      {hasJoined && showReconnectModal && (
   <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
       <h2 className="text-lg font-semibold mb-3">You’ve been disconnected</h2>
