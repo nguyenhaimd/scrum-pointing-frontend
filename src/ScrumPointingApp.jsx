@@ -124,7 +124,7 @@ export default function ScrumPointingApp() {
       setParticipantConnections(connected || {});
     });
 
-    });
+    
 
     socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
