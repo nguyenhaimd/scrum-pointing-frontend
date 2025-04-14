@@ -478,7 +478,7 @@ export default function ScrumPointingApp() {
               <div className="text-left text-sm mb-4">
                   <h3 className="font-semibold mb-1">Team Chat</h3>
                   
-                  <div ref={chatRef} className="h-32 overflow-y-auto bg-gray-50 border rounded p-2 space-y-2">
+                  <div ref={chatRef} className="h-32 lg:h-64 overflow-y-auto bg-gray-50 border rounded p-2">
 
                   {chatMessages.map((msg, i) => {
   // 🛡️ Skip rendering any empty system messages
@@ -530,9 +530,14 @@ export default function ScrumPointingApp() {
                     
 </div>
                   
-                {typingUsers.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1 italic">{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</p>
-                )}
+<div className="h-5 mt-1">
+  {typingUsers.length > 0 && (
+    <p className="text-xs text-gray-500 italic">
+      {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+    </p>
+  )}
+</div>
+                  
                 <div className="mt-2 flex gap-2">
                   <input
                     className="flex-1 border p-1 rounded"
