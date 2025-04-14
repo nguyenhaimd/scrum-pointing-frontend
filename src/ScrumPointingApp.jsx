@@ -74,6 +74,8 @@ export default function ScrumPointingApp() {
 
   const [myVoteHistory, setMyVoteHistory] = useState([]);  
 
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
+
 
   const getConsensus = () => {
     const values = Object.entries(votes)
@@ -136,7 +138,15 @@ export default function ScrumPointingApp() {
     socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
-    socket.on('connectionStatus', (status) => setConnectionStatus(status));
+
+    socket.on('connectionStatus', (status) => {
+      setConnectionStatus(status);
+      if (status === 'disconnected') {
+        setShowReconnectModal(true); // 👈 show reconnect prompt
+      } else {
+        setShowReconnectModal(false); // 👈 hide it once reconnected
+      }
+    });
 
     socket.on('rejoinedGracefully', ({ nickname }) => {
       toast.success(`✅ Welcome back, ${nickname}! You’ve rejoined the session.`);
@@ -336,6 +346,31 @@ export default function ScrumPointingApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
       <Toaster position="top-right" reverseOrder={false} />
+
+      {showReconnectModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
+      <h2 className="text-lg font-semibold mb-3">You’ve been disconnected</h2>
+      <p className="text-sm text-gray-600 mb-4">Tap below to rejoin the session once internet is restored.</p>
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        onClick={() => {
+          socket.emit('join', {
+            nickname,
+            room,
+            role,
+            avatar: selectedAvatar,
+            emoji: myMood
+          });
+          setShowReconnectModal(false);
+          toast.success('🔄 Attempting to reconnect...');
+        }}
+      >
+        Rejoin Now
+      </button>
+    </div>
+  </div>
+)}
 
       {connectionStatus === 'disconnected' && (
   <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
