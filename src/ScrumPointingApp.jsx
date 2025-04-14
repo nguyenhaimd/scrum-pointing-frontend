@@ -213,7 +213,7 @@ export default function ScrumPointingApp() {
 
     socket.on('connect', () => {
       setConnectionStatus('connected');
-      setShowReconnectModal(false);
+      //setShowReconnectModal(false);
     });
     
     socket.on('disconnect', () => {
