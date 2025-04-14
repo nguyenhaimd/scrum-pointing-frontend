@@ -69,6 +69,17 @@ export default function ScrumPointingApp() {
   const isDeveloper = role === 'Developer';
   const isObserver = role === 'Observer' || role === 'Product Owner';
 
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socket.disconnected) {
+        setConnectionStatus('disconnected');
+        setShowReconnectModal(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
 
@@ -142,9 +153,10 @@ export default function ScrumPointingApp() {
     socket.on('connectionStatus', (status) => {
       setConnectionStatus(status);
       if (status === 'disconnected') {
-        setShowReconnectModal(true); // 👈 show reconnect prompt
+        setShowReconnectModal(true);
       } else {
-        setShowReconnectModal(false); // 👈 hide it once reconnected
+        if (showReconnectModal) toast.success('✅ Reconnected!');
+        setShowReconnectModal(false);
       }
     });
 
@@ -229,6 +241,18 @@ export default function ScrumPointingApp() {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  useEffect(() => {
+    const checkConnection = () => {
+      if (socket.disconnected) {
+        setConnectionStatus('disconnected');
+        setShowReconnectModal(true);
+      }
+    };
+    const interval = setInterval(checkConnection, 10000); // every 10s
+    return () => clearInterval(interval);
+  }, []);
+
   const sendChatMessage = () => {
     if (chatInput.trim()) {
       socket.emit('teamChat', { room, sender: nickname, text: chatInput });
