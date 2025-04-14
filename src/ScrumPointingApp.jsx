@@ -47,6 +47,7 @@ export default function ScrumPointingApp() {
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
+  const [participantConnections, setParticipantConnections] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [reactions, setReactions] = useState([]);
@@ -72,6 +73,7 @@ export default function ScrumPointingApp() {
   const votesCast = participants.filter(p => participantRoles[p] === 'Developer' && votes[p] !== null).length;
 
   const [myVoteHistory, setMyVoteHistory] = useState([]);  
+
 
   const getConsensus = () => {
     const values = Object.entries(votes)
@@ -114,11 +116,13 @@ export default function ScrumPointingApp() {
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
+      setParticipantConnections(connected || {});
+    });
 
     });
 
@@ -327,6 +331,12 @@ export default function ScrumPointingApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
       <Toaster position="top-right" reverseOrder={false} />
 
+      {connectionStatus === 'disconnected' && (
+  <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
+    ⚠️ You’re offline. Trying to reconnect...
+  </div>
+)}
+
       {/* Floating Emoji Reactions */}
       <div className="fixed inset-0 z-50 pointer-events-none">
         {reactions.map((r) => (
@@ -429,17 +439,26 @@ export default function ScrumPointingApp() {
                 ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
               </div>
               <div className="grid grid-cols-1 gap-2">
-                {participants.map((p) => (
-                  <div key={p} className="flex items-center gap-2 border-b pb-1">
-                    <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{p} ({participantRoles[p]})</div>
-                      {participantMoods[p] && (
-                        <div className="text-sm text-gray-500">Mood: {participantMoods[p]}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+
+              {participants.map((p) => (
+  <div key={p} className="flex items-center gap-2 border-b pb-1">
+    <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+    <div className="flex-1">
+      <div className="font-medium">{p} ({participantRoles[p]})</div>
+
+      {/* ✅ Connection Status */}
+      <div className={`text-xs font-medium ${participantConnections[p] ? 'text-green-600' : 'text-red-500'}`}>
+        {participantConnections[p] ? '🟢 Online' : '🔴 Disconnected'}
+      </div>
+
+      {/* Mood line (optional) */}
+      {participantMoods[p] && (
+        <div className="text-sm text-gray-500">Mood: {participantMoods[p]}</div>
+      )}
+    </div>
+  </div>
+))}
+
               </div>
               
               {isDeveloper && (
