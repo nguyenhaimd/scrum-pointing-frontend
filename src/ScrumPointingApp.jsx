@@ -22,7 +22,7 @@ const MOOD_OPTIONS = {
   '☕': 'Coffee'
 };
 const AVATAR_EMOJIS = [
-  '🦅','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦅','🏋','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
   '🦁','🐮','🐷','🐸','🐵','🦄','🐙','🐳','🐢','🐤',
   '🐝','🦋','🦀','🦓','🦒','🦘','🦥','🦦','🦨','🦡',
   '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
@@ -714,6 +714,7 @@ export default function ScrumPointingApp() {
                     </>
                   )}
 
+                    {/*
                   {isScrumMaster && (
                     <div className="flex justify-center flex-wrap gap-4 mt-6">
                       {!votesRevealed && (
@@ -730,7 +731,23 @@ export default function ScrumPointingApp() {
                         Next Story/Defect
                       </button>
                     </div>
-                  )}
+                    )}
+                    */}
+                  
+                  {isScrumMaster && (
+                 <div className="flex justify-center flex-wrap gap-4 mt-6">
+                <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" onClick={revealVotes}>
+                 Reveal Votes
+               </button>
+               <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onClick={initiateRevote}>
+                  Revote
+                </button>
+               <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={endSession}>
+                Next Story/Defect
+                </button>
+             </div>
+                )}
+
                 </>
                 )}
                      {!sessionActive && isScrumMaster && (
