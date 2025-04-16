@@ -298,10 +298,13 @@ export default function ScrumPointingApp() {
     socket.emit('vote', { nickname, point });
   
     // Add to personal vote history
-    setMyVoteHistory(prev => [
-      ...prev,
-      { story: storyTitle || 'Untitled Story', point }
-    ]);
+    setMyVoteHistory(prev => {
+      const story = storyTitle || 'Untitled Story';
+      const filtered = prev.filter(item => item.story !== story);
+      return [...filtered, { story, point }];
+    });
+
+
   };
 
   const revealVotes = () => {
@@ -703,19 +706,11 @@ export default function ScrumPointingApp() {
     </div>
 
     {vote && (
-      <div className="text-center">
-        <p className="text-green-600 text-lg font-semibold mb-2">You voted: {vote}</p>
-        <button
-          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-          onClick={() => {
-            setVote(null);
-            socket.emit('vote', { nickname, point: null });
-          }}
-        >
-          Change Vote
-        </button>
-      </div>
-    )}
+ <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2">
+ ✅ You can update your vote at any time until the Scrum Master reveals it.
+</div>
+)}
+                        
   </>
 )} 
 
