@@ -670,6 +670,7 @@ export default function ScrumPointingApp() {
                     </div>
                   )}
 
+                    {/*}
                   {isDeveloper && !vote && (
                     <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
                       {POINT_OPTIONS.map((pt) => (
@@ -682,7 +683,43 @@ export default function ScrumPointingApp() {
                         </button>
                       ))}
                     </div>
-                  )}
+                    )}
+                    */}
+
+  // add change vote button
+{isDeveloper && !votesRevealed && (
+  <>
+    <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
+      {POINT_OPTIONS.map((pt) => (
+        <button
+          key={pt}
+          className={`bg-white border ${
+            vote === pt ? 'border-green-500' : 'border-blue-300'
+          } text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition`}
+          onClick={() => castVote(pt)}
+        >
+          {pt}
+        </button>
+      ))}
+    </div>
+
+    {vote && (
+      <div className="text-center">
+        <p className="text-green-600 text-lg font-semibold mb-2">You voted: {vote}</p>
+        <button
+          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+          onClick={() => {
+            setVote(null);
+            socket.emit('vote', { nickname, point: null });
+          }}
+        >
+          Change Vote
+        </button>
+      </div>
+    )}
+  </>
+)} 
+
 
                   {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
 
