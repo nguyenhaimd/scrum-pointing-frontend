@@ -924,6 +924,8 @@ socket.on('sessionTerminated', () => {
                     <li>✅ Team chat + typing indicators</li>
                     <li>✅ Responsive design for mobile & desktop</li>
                     <li>✅ Avatar & emoji personalization</li>
+                    <li>✅ Seamlessly rejoin when session disconnect</li>
+                      
                   </ul>
                   <p className="mt-3 text-xs text-gray-500">
                     Built with 💙 by <strong>HighWind</strong>
