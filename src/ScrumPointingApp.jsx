@@ -69,6 +69,11 @@ export default function ScrumPointingApp() {
   const isDeveloper = role === 'Developer';
   const isObserver = role === 'Observer' || role === 'Product Owner';
 
+  // ── just after your existing useState(...) calls ──
+const [showOfflineModal, setShowOfflineModal] = useState(false);
+const [offlineList, setOfflineList]       = useState([]);      // who’s offline
+const [pendingStart, setPendingStart]     = useState(null);    // { title, index }
+
   // ── Add this right below your other socket‑emitting actions ──
 const logout = () => {
   socket.emit('logout');
@@ -440,6 +445,39 @@ socket.on('sessionTerminated', () => {
     setSessionStartTime(Date.now());
   };
 
+  // ── after initiateRevote, before formatTime ──
+const handleStartSession = (title, index) => {
+  // build list of offline developers
+  const offline = participants
+    .filter(p => participantRoles[p] === 'Developer')
+    .filter(p => !participantConnections[p]);
+
+  if (offline.length) {
+    // stash them and pop the modal
+    setOfflineList(offline);
+    setPendingStart({ title, index });
+    setShowOfflineModal(true);
+  } else {
+    // everyone’s online—go ahead
+    startSession(title, index);
+  }
+};
+
+// called when the SM clicks “Start Anyway”
+const confirmStartAnyway = () => {
+  setShowOfflineModal(false);
+  if (pendingStart) {
+    startSession(pendingStart.title, pendingStart.index);
+    setPendingStart(null);
+  }
+};
+
+// when SM clicks “Cancel”
+const cancelStart = () => {
+  setShowOfflineModal(false);
+  setPendingStart(null);
+};
+
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -449,6 +487,36 @@ socket.on('sessionTerminated', () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
       <Toaster position="top-right" reverseOrder={false} />
+
+      {showOfflineModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="bg-white rounded-2xl p-6 w-11/12 max-w-md space-y-4">
+      <h3 className="text-xl font-bold text-red-600">
+        ⚠️ Some developers are offline
+      </h3>
+      <p className="text-sm text-gray-700">
+        The following {offlineList.length > 1 ? 'developers are' : 'developer is'} disconnected:
+      </p>
+      <ul className="list-disc list-inside text-sm text-gray-800 mb-4">
+        {offlineList.map(name => <li key={name}>{name}</li>)}
+      </ul>
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={cancelStart}
+          className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={confirmStartAnyway}
+          className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+        >
+          Start Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+)} 
 
       {hasJoined && showReconnectModal && (
   <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -903,7 +971,7 @@ socket.on('sessionTerminated', () => {
                     <div className="mt-4">
                       <h3 className="font-semibold mb-2">Queued Stories:</h3>
                       {storyQueue.map((title, index) => (
-                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => startSession(title, index)}>▶️ {title}</button>
+                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => handleStartSession(title, index)}>▶️ {title}</button>
                       ))}
                     </div>
                   )}
