@@ -512,7 +512,7 @@ socket.on('sessionTerminated', () => {
         </button>
       )}
 
-      {/* ── Always Visible: Log Out ── */}
+      {/* ── Always Visible: Log Out ──
       <button
         className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 text-xs whitespace-nowrap"
         onClick={() => {
@@ -522,7 +522,9 @@ socket.on('sessionTerminated', () => {
         }}
       >
         Log Out
-      </button>
+            </button>
+        */}     
+
     </div>
   </div>
 )}
