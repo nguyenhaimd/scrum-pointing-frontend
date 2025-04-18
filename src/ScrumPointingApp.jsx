@@ -69,6 +69,48 @@ export default function ScrumPointingApp() {
   const isDeveloper = role === 'Developer';
   const isObserver = role === 'Observer' || role === 'Product Owner';
 
+  // ── Add this right below your other socket‑emitting actions ──
+const logout = () => {
+  socket.emit('logout');
+  // reset all local state back to initial
+  setHasJoined(false);
+  setNickname('');
+  setRoom('AFOSR Pega Developers');
+  setRole('Developer');
+  setSelectedAvatar(
+    AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
+  );
+  setStoryTitle('');
+  setStoryQueue([]);
+  setSessionActive(false);
+  setVote(null);
+  setVotes({});
+  setVotesRevealed(false);
+  setShowConfetti(false);
+  setParticipants([]);
+  setParticipantRoles({});
+  setParticipantAvatars({});
+  setParticipantMoods({});
+  setParticipantConnections({});
+  setChatMessages([]);
+  setChatInput('');
+  setReactions([]);
+  setTypingUsers([]);
+  setConnectionStatus('connected');
+  setError('');
+  setShowSidebar(false);
+  setMyMood('😎');
+  setSessionStartTime(null);
+  setElapsedSeconds(0);
+  setGlobalStartTime(null);
+  setGlobalElapsedSeconds(0);
+  setVoteStartTime(null);
+  setCurrentUserInfo({});
+  setShowAbout(false);
+  setShowReconnectModal(false);
+  setMyVoteHistory([]);
+};
+
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && socket.disconnected) {
@@ -431,7 +473,9 @@ export default function ScrumPointingApp() {
 
       {/* Header - Current User Info */}
       {hasJoined && (
-      <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-3 py-2 rounded shadow text-sm text-center md:text-right mt-2 md:mt-0">
+  <>
+    {/* ── User Info Box ── */}
+    <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-3 py-2 rounded shadow text-sm text-center md:text-right mt-2 md:mt-0">
       <div className="text-xs text-gray-500">You are logged in as:</div>
       <div className="text-md">
         <span className="text-2xl">{currentUserInfo.avatar}</span>{' '}
@@ -439,7 +483,16 @@ export default function ScrumPointingApp() {
         <span className="text-gray-600">({currentUserInfo.role})</span>
       </div>
     </div>
-      )}
+
+    {/* ── Log Out Button ── */}
+    <button
+      className="mt-1 text-xs text-red-500 underline"
+      onClick={logout}
+    >
+      Log Out
+    </button>
+  </>
+)}
           {/* Mood Toggle */}
           {hasJoined && (
         <>
