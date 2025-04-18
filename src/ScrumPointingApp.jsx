@@ -459,7 +459,7 @@ socket.on('sessionTerminated', () => {
   </div>
 )}
 
-      {connectionStatus === 'disconnected' && (
+{hasJoined && connectionStatus === 'disconnected' && (
   <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
     ⚠️ You’re offline. Trying to reconnect...
   </div>
