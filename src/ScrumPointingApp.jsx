@@ -488,8 +488,8 @@ socket.on('sessionTerminated', () => {
         ))}
       </div>
 
-      {/* Header - Current User Info */}
-      {hasJoined && (
+     {/* Header — Current User Info + Controls */}
+{hasJoined && (
   <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-4 py-2 rounded shadow text-sm flex items-center justify-between space-x-4">
     {/* ── User Info ── */}
     <div className="flex items-center space-x-2">
@@ -501,26 +501,30 @@ socket.on('sessionTerminated', () => {
       </div>
     </div>
 
-    {/* ── Only Scrum Master: End Pointing Session ── */}
-    {isScrumMaster && (
-      <button
-        className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap"
-        onClick={() => socket.emit('endPointingSession')}
-      >
-        End Pointing Session
-      </button>
-    )}
-  </div>
-)}
+    <div className="flex items-center space-x-2">
+      {/* ── Only Scrum Master: End Pointing Session ── */}
+      {isScrumMaster && (
+        <button
+          className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap"
+          onClick={() => socket.emit('endPointingSession')}
+        >
+          End Pointing Session
+        </button>
+      )}
 
-    {/* ── Log Out Button ── */}
-    <button
-      className="mt-1 text-xs text-red-500 underline"
-      onClick={logout}
-    >
-      Log Out
-    </button>
-  </>
+      {/* ── Always Visible: Log Out ── */}
+      <button
+        className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 text-xs whitespace-nowrap"
+        onClick={() => {
+          socket.disconnect();
+          setHasJoined(false);
+          // optional: clear any state, redirect to login screen, etc.
+        }}
+      >
+        Log Out
+      </button>
+    </div>
+  </div>
 )}
           {/* Mood Toggle */}
           {hasJoined && (
