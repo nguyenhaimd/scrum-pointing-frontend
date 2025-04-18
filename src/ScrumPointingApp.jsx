@@ -187,16 +187,35 @@ const logout = () => {
     });
 
     
+    socket.on('userJoined', (user) => {
+      toast.success(`🔵 ${user} joined the room.`);
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'System', text: `${user} rejoined the session.` }
+      ]);
+    });
+    
+    socket.on('userLeft', (user) => {
+      toast(`🔴 ${user} left the room.`, { icon: '👋' });
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'System', text: `${user} disconnected.` }
+      ]);
+    });
 
-    socket.on('userJoined', (user) => toast.success(`🔵 ${user} joined the room.`));
-    socket.on('userLeft', (user) => toast(`🔴 ${user} left the room.`, { icon: '👋' }));
+
+
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
 
     socket.on('rejoinedGracefully', ({ nickname }) => {
       toast.success(`✅ Welcome back, ${nickname}! You’ve rejoined the session.`);
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'System', text: `${nickname} rejoined the session.` }
+      ]);
     });
-
+    
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
       const randomX = Math.random() * 80 + 10;
