@@ -237,6 +237,22 @@ const logout = () => {
       setSessionStartTime(null);
     });
 
+  // ─────────────────────────────────────────────────────
+// 🔥 New: full session has been ended by SM
+socket.on('sessionTerminated', () => {
+  // reset everything back to “Join” screen
+  setHasJoined(false);
+  setSessionActive(false);
+  setStoryTitle('');
+  setStoryQueue([]);
+  setVotes({});
+  setVote(null);
+  setVotesRevealed(false);
+  setChatMessages([]);
+  toast(`🔴 Pointing session ended by Scrum Master.`, { icon: '⚠️' });
+});
+// ─────────────────────────────────────────────────────  
+
     socket.on('teamChat', (msg) => {
       setChatMessages((prev) => {
         if (msg.type === 'voteSummary') {
@@ -275,6 +291,7 @@ const logout = () => {
       socket.off('revealVotes');
       socket.off('sessionEnded');
       socket.off('teamChat');
+      socket.off('sessionTerminated');
       socket.off('rejoinedGracefully');
     };
   }, []);
@@ -473,16 +490,28 @@ const logout = () => {
 
       {/* Header - Current User Info */}
       {hasJoined && (
-  <>
-    {/* ── User Info Box ── */}
-    <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-3 py-2 rounded shadow text-sm text-center md:text-right mt-2 md:mt-0">
+  <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-4 py-2 rounded shadow text-sm flex items-center justify-between space-x-4">
+    {/* ── User Info ── */}
+    <div className="flex items-center space-x-2">
       <div className="text-xs text-gray-500">You are logged in as:</div>
-      <div className="text-md">
-        <span className="text-2xl">{currentUserInfo.avatar}</span>{' '}
-        <span className="font-bold">{currentUserInfo.nickname}</span>{' '}
+      <div className="text-md flex items-center space-x-1">
+        <span className="text-2xl">{currentUserInfo.avatar}</span>
+        <span className="font-bold">{currentUserInfo.nickname}</span>
         <span className="text-gray-600">({currentUserInfo.role})</span>
       </div>
     </div>
+
+    {/* ── Only Scrum Master: End Pointing Session ── */}
+    {isScrumMaster && (
+      <button
+        className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap"
+        onClick={() => socket.emit('endPointingSession')}
+      >
+        End Pointing Session
+      </button>
+    )}
+  </div>
+)}
 
     {/* ── Log Out Button ── */}
     <button
