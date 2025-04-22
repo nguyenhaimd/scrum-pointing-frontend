@@ -740,84 +740,6 @@ const cancelStart = () => {
             </div>
           ) : (
             <>
-              {/* Chat Section */}
-              <div className="text-left text-sm mb-4">
-                  <h3 className="font-semibold mb-1">Team Chat</h3>
-                  
-                  <div ref={chatRef} className="h-32 lg:h-64 overflow-y-auto bg-gray-50 border rounded p-2">
-
-                  {chatMessages.map((msg, i) => {
-  // 🛡️ Skip rendering any empty system messages
-  if ((!msg.text && !msg.type) || (!msg.text && msg.sender === 'System')) return null;
-
-  // ✅ Render vote summaries (for Scrum Master only)
-  if (msg.type === 'voteSummary' && isScrumMaster) {
-    const { summary } = msg;
-    return (
-      <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs mt-2">
-        <div className="font-semibold flex justify-between items-center">
-          📝 Summary for "{summary.story}"
-          <button
-            onClick={() => {
-              setChatMessages((prev) =>
-                prev.map((m, idx) =>
-                  idx === i
-                    ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
-                    : { ...m, summary: { ...m.summary, expand: false } } // collapse others
-                )
-              );
-            }}
-            className="text-blue-600 underline ml-2 text-xs"
-          >
-            {summary.expand ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        {summary.expand && (
-          <div className="mt-1">
-            <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
-            <ul className="list-disc ml-4">
-              {summary.votes.map((v, idx) => (
-                <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 💬 Default regular chat messages
-  return (
-    <div key={i} className="text-sm">
-      <strong>{msg.sender}:</strong> {msg.text}
-    </div>
-  );
-})}
-                    
-</div>
-                  
-<div className="h-5 mt-1">
-  {typingUsers.length > 0 && (
-    <p className="text-xs text-gray-500 italic">
-      {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
-    </p>
-  )}
-</div>
-                  
-                <div className="mt-2 flex gap-2">
-                  <input
-                    className="flex-1 border p-1 rounded"
-                    placeholder="Type a message..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') sendChatMessage();
-                      else handleTyping();
-                    }}
-                  />
-                  <button className="px-3 bg-blue-500 text-white rounded" onClick={sendChatMessage}>Send</button>
-                </div>
-              </div>
 
               {sessionActive && (
                 <>
@@ -953,6 +875,88 @@ const cancelStart = () => {
 
                 </>
                 )}
+
+
+              {/* Chat Section */}
+              <div className="text-left text-sm mb-4">
+                  <h3 className="font-semibold mb-1">Team Chat</h3>
+                  
+                  <div ref={chatRef} className="h-32 lg:h-64 overflow-y-auto bg-gray-50 border rounded p-2">
+
+                  {chatMessages.map((msg, i) => {
+  // 🛡️ Skip rendering any empty system messages
+  if ((!msg.text && !msg.type) || (!msg.text && msg.sender === 'System')) return null;
+
+  // ✅ Render vote summaries (for Scrum Master only)
+  if (msg.type === 'voteSummary' && isScrumMaster) {
+    const { summary } = msg;
+    return (
+      <div key={i} className="border border-blue-300 rounded p-2 bg-blue-50 text-xs mt-2">
+        <div className="font-semibold flex justify-between items-center">
+          📝 Summary for "{summary.story}"
+          <button
+            onClick={() => {
+              setChatMessages((prev) =>
+                prev.map((m, idx) =>
+                  idx === i
+                    ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
+                    : { ...m, summary: { ...m.summary, expand: false } } // collapse others
+                )
+              );
+            }}
+            className="text-blue-600 underline ml-2 text-xs"
+          >
+            {summary.expand ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {summary.expand && (
+          <div className="mt-1">
+            <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
+            <ul className="list-disc ml-4">
+              {summary.votes.map((v, idx) => (
+                <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 💬 Default regular chat messages
+  return (
+    <div key={i} className="text-sm">
+      <strong>{msg.sender}:</strong> {msg.text}
+    </div>
+  );
+})}
+                    
+</div>
+                  
+<div className="h-5 mt-1">
+  {typingUsers.length > 0 && (
+    <p className="text-xs text-gray-500 italic">
+      {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+    </p>
+  )}
+</div>
+                  
+                <div className="mt-2 flex gap-2">
+                  <input
+                    className="flex-1 border p-1 rounded"
+                    placeholder="Type a message..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') sendChatMessage();
+                      else handleTyping();
+                    }}
+                  />
+                  <button className="px-3 bg-blue-500 text-white rounded" onClick={sendChatMessage}>Send</button>
+                </div>
+              </div>
+
+
                      {!sessionActive && isScrumMaster && (
                 <div className="mb-6">
                     
