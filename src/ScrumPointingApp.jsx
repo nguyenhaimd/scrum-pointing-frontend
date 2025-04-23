@@ -137,8 +137,9 @@ const logout = () => {
 
   const getConsensus = () => {
     const values = Object.entries(votes)
-      .filter(([u]) => participantRoles[u] === 'Developer')
-      .map(([_, v]) => Number(v));
+      .filter(([u, v]) => participantRoles[u] === 'Developer' && v != null)
+      .map(([_, v]) => Number(v))
+      .filter(n => !isNaN(n));
     if (!values.length) return [];
     const freq = values.reduce((acc, val) => {
       acc[val] = (acc[val] || 0) + 1;
@@ -205,7 +206,9 @@ const logout = () => {
       ]);
     });
 
-
+    socket.on('userReconnected', (user) =>
+      toast.success(`🟢 ${user} is back online!`)
+    );
 
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
     socket.on('typingUpdate', (users) => setTypingUsers(users.filter((u) => u !== nickname)));
@@ -299,6 +302,21 @@ socket.on('sessionTerminated', () => {
       setConnectionStatus('disconnected');
       setShowReconnectModal(true);
     });
+
+    socket.on('removeByMaster', () => {
+      toast.error('❌ You have been removed from the session by the Scrum Master.');
+      setHasJoined(false);
+      socket.disconnect();
+    });
+
+// Somewhere in your socket setup useEffect:
+socket.on('userRemoved', (removedNick) => {
+  toast(`⚠️ ${removedNick} was removed by Scrum Master`, { icon: '⚠️' });
+  if (removedNick === nickname) {
+    // you’ve been removed! go back to login
+    setHasJoined(false);
+  }
+});
 
     return () => {
       socket.off('participantsUpdate');
@@ -436,6 +454,11 @@ socket.on('sessionTerminated', () => {
       setStoryTitle('');
     }
   };
+
+  // Remove a story from the queue by index
+const removeStory = (indexToRemove) => {
+  setStoryQueue(prev => prev.filter((_, i) => i !== indexToRemove));
+};
 
   const initiateRevote = () => {
     socket.emit('startSession', { title: storyTitle, room });
@@ -683,20 +706,30 @@ const cancelStart = () => {
 
               {participants.map((p) => (
   <div key={p} className="flex items-center gap-2 border-b pb-1">
+    {/* avatar */}
     <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+    {/* name/role/mood */}
     <div className="flex-1">
       <div className="font-medium">{p} ({participantRoles[p]})</div>
-
-      {/* ✅ Connection Status */}
-      <div className={`text-xs font-medium ${participantConnections[p] ? 'text-green-600' : 'text-red-500'}`}>
-        {participantConnections[p] ? '🟢 Online' : '🔴 Disconnected'}
-      </div>
-
-      {/* Mood line (optional) */}
       {participantMoods[p] && (
         <div className="text-sm text-gray-500">Mood: {participantMoods[p]}</div>
       )}
     </div>
+    {/* ── REMOVE BUTTON ── */}
+    {isScrumMaster && p !== nickname && (
+      <button
+        onClick={() => {
+          // ask for confirmation
+          if (window.confirm(`Remove ${p} from this session?`)) {
+            socket.emit('removeUser', { room, nickname: p });
+          }
+        }}
+        className="ml-auto text-red-600 hover:text-red-800 text-xl font-bold"
+        title={`Remove ${p}`}
+      >
+        ✖
+      </button>
+    )}
   </div>
 ))}
 
@@ -818,7 +851,7 @@ const cancelStart = () => {
                         <h3 className="text-lg font-semibold mb-2">Votes</h3>
                         <ul className="text-left inline-block">
                           {Object.entries(votes)
-                            .filter(([user]) => participantRoles[user] === 'Developer')
+                            .filter(([user]) => participantRoles[user] === 'Developer') && pt != null
                             .map(([user, pt]) => (
                               <li key={user}>
                                 <strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}
@@ -972,13 +1005,33 @@ const cancelStart = () => {
                     
                   <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
                   {storyQueue.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Queued Stories:</h3>
-                      {storyQueue.map((title, index) => (
-                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => handleStartSession(title, index)}>▶️ {title}</button>
-                      ))}
-                    </div>
-                  )}
+  <div className="mt-4">
+    <h3 className="font-semibold mb-2">Queued Stories:</h3>
+    <div className="space-y-2">
+      {storyQueue.map((title, index) => (
+        <div key={index} className="flex items-center justify-between bg-gray-100 hover:bg-gray-200 border px-4 py-2 rounded">
+          {/* Start story */}
+          <button
+            className="flex-1 text-left"
+            onClick={() => startSession(title, index)}
+          >
+            ▶️ {title}
+          </button>
+          {/* Remove story */}
+          <button
+            onClick={() => removeStory(index)}
+            className="ml-4 text-red-600 hover:text-red-800 text-sm"
+            title="Remove from queue"
+          >
+            🗑️ Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+                    
+
                 </div>
               )}
 
