@@ -841,15 +841,23 @@ const cancelStart = () => {
                       {showConfetti && <Confetti width={width} height={height} />}
                       <div className="mt-6 bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold mb-2">Votes</h3>
+                       
                         <ul className="text-left inline-block">
-                          {Object.entries(votes)
-                            .filter(([user]) => participantRoles[user] === 'Developer')
-                            .map(([user, pt]) => (
-                              <li key={user}>
-                                <strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}
-                              </li>
-                            ))}
-                        </ul>
+  {Object.entries(votes)
+    .filter(([user, pt]) =>
+      participantRoles[user] === 'Developer' &&
+      pt !== null &&
+      pt !== undefined &&
+      pt !== ''
+    )
+    .map(([user, pt]) => (
+      <li key={user}>
+        <strong>{participantAvatars[user] || '❓'} {user}</strong>: {pt}
+      </li>
+    ))}
+</ul>
+                          
+
                       </div>
                       {consensusPoints.length > 0 && (
                         <motion.p
@@ -938,10 +946,17 @@ const cancelStart = () => {
           <div className="mt-1">
             <div className="text-green-700 mb-1">📊 Consensus: {summary.consensus.join(', ')}</div>
             <ul className="list-disc ml-4">
-              {summary.votes.map((v, idx) => (
-                <li key={idx}>{v.avatar} {v.name} — <strong>{v.point}</strong></li>
-              ))}
+
+            {summary.votes
+  .filter(v => v.point !== null && v.point !== undefined && v.point !== '')
+  .map((v, idx) => (
+    <li key={idx}>
+      {v.avatar} {v.name} — <strong>{v.point}</strong>
+    </li>
+))}  
+
             </ul>
+          
           </div>
         )}
       </div>
