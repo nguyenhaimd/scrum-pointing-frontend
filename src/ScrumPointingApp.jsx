@@ -166,6 +166,16 @@ const logout = () => {
   }, [sessionStartTime]);
 
   useEffect(() => {
+    socket.on('updateStoryQueue', (queue) => {
+      setStoryQueue(queue);
+    });
+  
+    return () => {
+      socket.off('updateStoryQueue');
+    };
+  }, []);
+
+  useEffect(() => {
     let timer;
     if (globalStartTime) {
       timer = setInterval(() => {
@@ -973,10 +983,23 @@ const cancelStart = () => {
                   <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={addStoryToQueue}>Add Story</button>
                   {storyQueue.length > 0 && (
                     <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Queued Stories:</h3>
-                      {storyQueue.map((title, index) => (
-                        <button key={index} className="bg-gray-100 hover:bg-gray-200 border w-full text-left px-4 py-2 mb-1 rounded" onClick={() => handleStartSession(title, index)}>▶️ {title}</button>
-                      ))}
+                        <h3 className="font-semibold mb-2">Queued Stories:</h3>
+                        
+                        {storyQueue.map((title, index) => (
+  <div key={index} className="flex justify-between items-center bg-gray-100 hover:bg-gray-200 border text-left px-4 py-2 mb-1 rounded">
+    <button className="flex-1 text-left" onClick={() => handleStartSession(title, index)}>
+      ▶️ {title}
+    </button>
+    <button
+      className="text-red-600 text-sm ml-2"
+      onClick={() => setStoryQueue(storyQueue.filter((_, i) => i !== index))}
+    >
+      Remove
+    </button>
+  </div>
+))}
+                        
+
                     </div>
                   )}
                 </div>
