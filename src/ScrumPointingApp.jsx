@@ -691,24 +691,39 @@ const cancelStart = () => {
               </div>
               <div className="grid grid-cols-1 gap-2">
 
-              {participants.map((p) => (
-  <div key={p} className="flex items-center gap-2 border-b pb-1">
-    <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-    <div className="flex-1">
-      <div className="font-medium">{p} ({participantRoles[p]})</div>
+              {participants.map((p) => {
+  const isConnected = participantConnections[p];
+  const role = participantRoles[p];
+  const mood = participantMoods[p];
 
-      {/* ✅ Connection Status */}
-      <div className={`text-xs font-medium ${participantConnections[p] ? 'text-green-600' : 'text-red-500'}`}>
-        {participantConnections[p] ? '🟢 Online' : '🔴 Disconnected'}
+  return (
+    <div key={p} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 mb-2 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+        <div className="text-sm leading-tight">
+          <div className="font-semibold text-gray-800">{p}</div>
+          <div className="text-xs text-gray-500">{role}</div>
+        </div>
       </div>
-
-      {/* Mood line (optional) */}
-      {participantMoods[p] && (
-        <div className="text-sm text-gray-500">Mood: {participantMoods[p]}</div>
-      )}
+      <div className="flex flex-col items-end text-xs text-right space-y-1">
+        <div className={isConnected ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+          {isConnected ? '🟢 Online' : '🔴 Offline'}
+        </div>
+        {mood && (
+          <div className="text-gray-500">{mood}</div>
+        )}
+        {isScrumMaster && !isConnected && (
+          <button
+            className="text-red-500 hover:underline text-xs"
+            onClick={() => socket.emit('forceRemoveUser', p)}
+          >
+            Remove
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-))}
+  );
+})}
 
               </div>
               
