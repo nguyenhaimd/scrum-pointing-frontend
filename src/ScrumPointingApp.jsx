@@ -697,8 +697,7 @@ const cancelStart = () => {
 </div>
 
               <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
-            const activeParticipants = participants.filter(name => connected[name]);
-            activeParticipants.map((name, index) => (
+  {participants.map((p) => {
     const isConnected = participantConnections[p];
     const role = participantRoles[p];
     const mood = participantMoods[p];
