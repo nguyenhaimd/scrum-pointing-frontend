@@ -804,10 +804,19 @@ const cancelStart = () => {
                     {/*}
                   {isDeveloper && !vote && (
                     <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
-                      {POINT_OPTIONS.map((pt) => (
-                        <button
-                          key={pt}
-                          className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition"
+                      {POINT_OPTIONS.map(point => (
+  <button
+    key={point}
+    className={`rounded px-4 py-2 m-1 border transition-transform ${
+      votes[nickname] === point
+        ? 'bg-green-600 text-white font-bold scale-105'
+        : 'bg-gray-200 text-black'
+    }`}
+    onClick={() => castVote(point)}
+  >
+    {point} {votes[nickname] === point && '✅'}
+  </button>
+))}className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition"
                           onClick={() => castVote(pt)}
                         >
                           {pt}
