@@ -28,6 +28,15 @@ const AVATAR_EMOJIS = [
   '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
   '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
+function renderDeviceIcon(user) {
+  if (!deviceTypes || !deviceTypes[user]) return null;
+  const type = deviceTypes[user];
+  return (
+    <span title={type} className="mr-1">
+      {type === 'desktop' ? '🖥️' : '📱'}
+    </span>
+  );
+}
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
 export default function ScrumPointingApp() {
@@ -44,6 +53,7 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
+  const [deviceTypes, setDeviceTypes] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -188,6 +198,7 @@ const logout = () => {
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
+    if (data.deviceTypes) setDeviceTypes(data.deviceTypes);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
