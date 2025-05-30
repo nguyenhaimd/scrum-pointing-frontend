@@ -44,8 +44,6 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
-
-const [participantDevices, setParticipantDevices] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -188,9 +186,8 @@ const logout = () => {
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
-      setParticipantDevices(devices || {});
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
@@ -335,14 +332,6 @@ socket.on('sessionTerminated', () => {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatMessages]);
-
-
-function renderDeviceIcon(nickname) {
-  const device = participantDevices?.[nickname];
-  if (device === 'desktop') return <span title="Desktop">💻</span>;
-  if (device === 'mobile') return <span title="Mobile">📱</span>;
-  return <span title="Unknown">❓</span>;
-}
 
   useEffect(() => {
     const checkConnection = () => {
@@ -708,7 +697,8 @@ const cancelStart = () => {
 </div>
 
               <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
-  {participants.map((p) => {
+            const activeParticipants = participants.filter(name => connected[name]);
+            activeParticipants.map((name, index) => (
     const isConnected = participantConnections[p];
     const role = participantRoles[p];
     const mood = participantMoods[p];
@@ -718,10 +708,7 @@ const cancelStart = () => {
         <div className="flex items-center gap-3">
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
           <div className="text-sm leading-tight">
-              <div className="font-semibold text-gray-800 flex items-center gap-1">
-                {renderDeviceIcon(p)}
-                {p}
-              </div>
+            <div className="font-semibold text-gray-800">{p}</div>
             <div className="text-xs text-gray-500">{role}</div>
           </div>
         </div>
