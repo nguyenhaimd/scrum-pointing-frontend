@@ -188,9 +188,9 @@ const logout = () => {
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
       setParticipants(names);
-    setParticipantDevices(data.devices || {});
+      setParticipantDevices(devices || {});
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
