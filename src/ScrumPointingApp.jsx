@@ -44,6 +44,7 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
+  const [devices, setDevices] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -705,6 +706,7 @@ const cancelStart = () => {
     return (
       <div key={p} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 shadow-sm">
         <div className="flex items-center gap-3">
+          <span className="text-lg">{devices?.[p] === "mobile" ? "📱" : "💻"}</span>
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
           <div className="text-sm leading-tight">
             <div className="font-semibold text-gray-800">{p}</div>
