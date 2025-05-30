@@ -30,6 +30,12 @@ const AVATAR_EMOJIS = [
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
+
+function renderDeviceIcon(name) {
+  if (!devices || !devices[name]) return null;
+  return devices[name] === 'mobile' ? '📱' : '💻';
+}
+
 export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('AFOSR Pega Developers');
@@ -124,13 +130,7 @@ const logout = () => {
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
-    
-  function renderDeviceIcon(nickname) {
-    const type = devices[nickname];
-    if (!type) return null;
-    return <span className="ml-1">{type === 'mobile' ? '📱' : '💻'}</span>;
-  }
-return () => document.removeEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
@@ -192,7 +192,7 @@ return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
