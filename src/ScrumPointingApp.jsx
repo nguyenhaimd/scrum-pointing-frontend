@@ -28,15 +28,6 @@ const AVATAR_EMOJIS = [
   '🦧','🦬','🐫','🐪','🐘','🐊','🦍','🐎','🐖','🐏',
   '🐑','🐐','🦌','🐓','🦃','🕊️','🐇','🐿️','🦝','🦛'
 ];
-function renderDeviceIcon(user) {
-  if (!deviceTypes || !deviceTypes[user]) return null;
-  const type = deviceTypes[user];
-  return (
-    <span title={type} className="mr-1">
-      {type === 'desktop' ? '🖥️' : '📱'}
-    </span>
-  );
-}
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
 export default function ScrumPointingApp() {
@@ -53,7 +44,6 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
-  const [deviceTypes, setDeviceTypes] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -198,7 +188,6 @@ const logout = () => {
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
-    if (data.deviceTypes) setDeviceTypes(data.deviceTypes);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
@@ -718,7 +707,7 @@ const cancelStart = () => {
         <div className="flex items-center gap-3">
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
           <div className="text-sm leading-tight">
-            <div className="font-semibold text-gray-800">{p}</div>
+            <div className="font-semibold text-gray-800">{renderDeviceIcon(p)} {p}</div>
             <div className="text-xs text-gray-500">{role}</div>
           </div>
         </div>
@@ -839,7 +828,7 @@ const cancelStart = () => {
     </div>
 
     {vote && (
- <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
+ <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2">
  ✅ You can update your vote at any time until the Scrum Master reveals it.
 </div>
 )}
@@ -848,15 +837,15 @@ const cancelStart = () => {
 )} 
 
 
-                  {vote && <p className="text-green-600 text-lg font-semibold mb-4 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">You voted: {vote}</p>}
+                  {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
 
                   {votesRevealed && (
                     <>
                       {showConfetti && <Confetti width={width} height={height} />}
-                      <div className="mt-6 bg-gray-50 rounded-lg p-4 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
-                        <h3 className="text-lg font-semibold mb-2 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">Votes</h3>
+                      <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-2">Votes</h3>
                        
-                        <ul className="text-left inline-block bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
+                        <ul className="text-left inline-block">
   {Object.entries(votes)
     .filter(([user, pt]) =>
       participantRoles[user] === 'Developer' &&
