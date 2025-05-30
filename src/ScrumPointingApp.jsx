@@ -707,7 +707,7 @@ const cancelStart = () => {
         <div className="flex items-center gap-3">
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
           <div className="text-sm leading-tight">
-            <div className="font-semibold text-gray-800">{renderDeviceIcon(p)} {p}</div>
+            <div className="font-semibold text-gray-800"><>{renderDeviceIcon(p)} {p}</></div>
             <div className="text-xs text-gray-500">{role}</div>
           </div>
         </div>
