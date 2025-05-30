@@ -333,6 +333,14 @@ socket.on('sessionTerminated', () => {
     }
   }, [chatMessages]);
 
+
+function renderDeviceIcon(nickname) {
+  const device = participantDevices?.[nickname];
+  if (device === 'desktop') return <span title="Desktop">💻</span>;
+  if (device === 'mobile') return <span title="Mobile">📱</span>;
+  return <span title="Unknown">❓</span>;
+}
+
   useEffect(() => {
     const checkConnection = () => {
       if (socket.disconnected) {
