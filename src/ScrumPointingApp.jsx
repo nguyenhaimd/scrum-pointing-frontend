@@ -44,6 +44,8 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
+
+const [participantDevices, setParticipantDevices] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -188,6 +190,7 @@ const logout = () => {
   useEffect(() => {
     socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
       setParticipants(names);
+    setParticipantDevices(data.devices || {});
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
       setParticipantMoods(moods || {});
