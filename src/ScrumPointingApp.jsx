@@ -124,7 +124,13 @@ const logout = () => {
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    
+  function renderDeviceIcon(nickname) {
+    const type = devices[nickname];
+    if (!type) return null;
+    return <span className="ml-1">{type === 'mobile' ? '📱' : '💻'}</span>;
+  }
+return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
@@ -186,7 +192,7 @@ const logout = () => {
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
       setParticipants(names);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
