@@ -30,12 +30,6 @@ const AVATAR_EMOJIS = [
 ];
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
-
-function renderDeviceIcon(name) {
-  if (!devices || !devices[name]) return null;
-  return devices[name] === 'mobile' ? '📱' : '💻';
-}
-
 export default function ScrumPointingApp() {
   const [nickname, setNickname] = useState('');
   const [room, setRoom] = useState('AFOSR Pega Developers');
@@ -804,19 +798,10 @@ const cancelStart = () => {
                     {/*}
                   {isDeveloper && !vote && (
                     <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
-                      {POINT_OPTIONS.map(point => (
-  <button
-    key={point}
-    className={`rounded px-4 py-2 m-1 border transition-transform ${
-      votes[nickname] === point
-        ? 'bg-green-600 text-white font-bold scale-105'
-        : 'bg-gray-200 text-black'
-    }`}
-    onClick={() => castVote(point)}
-  >
-    {point} {votes[nickname] === point && '✅'}
-  </button>
-))}className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition"
+                      {POINT_OPTIONS.map((pt) => (
+                        <button
+                          key={pt}
+                          className="bg-white border border-blue-300 text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition"
                           onClick={() => castVote(pt)}
                         >
                           {pt}
@@ -843,7 +828,7 @@ const cancelStart = () => {
     </div>
 
     {vote && (
- <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2">
+ <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
  ✅ You can update your vote at any time until the Scrum Master reveals it.
 </div>
 )}
@@ -852,15 +837,15 @@ const cancelStart = () => {
 )} 
 
 
-                  {vote && <p className="text-green-600 text-lg font-semibold mb-4">You voted: {vote}</p>}
+                  {vote && <p className="text-green-600 text-lg font-semibold mb-4 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">You voted: {vote}</p>}
 
                   {votesRevealed && (
                     <>
                       {showConfetti && <Confetti width={width} height={height} />}
-                      <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-2">Votes</h3>
+                      <div className="mt-6 bg-gray-50 rounded-lg p-4 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
+                        <h3 className="text-lg font-semibold mb-2 bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">Votes</h3>
                        
-                        <ul className="text-left inline-block">
+                        <ul className="text-left inline-block bg-white text-black font-bold ring-2 ring-green-500 px-2 py-1 rounded">
   {Object.entries(votes)
     .filter(([user, pt]) =>
       participantRoles[user] === 'Developer' &&
