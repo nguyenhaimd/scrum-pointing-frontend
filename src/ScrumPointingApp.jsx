@@ -5,6 +5,14 @@ import { useWindowSize } from '@react-hook/window-size';
 import { motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
+
+function getDeviceType() {
+  const ua = navigator.userAgent.toLowerCase();
+  const isMobile = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10|opera mini/.test(ua);
+  const isTablet = /ipad|android(?!.*mobile)/.test(ua);
+  return isMobile || isTablet ? "mobile" : "desktop";
+}
+
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
   secure: true,
@@ -704,7 +712,12 @@ const cancelStart = () => {
     const mood = participantMoods[p];
 
     return (
-      <div key={p} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 shadow-sm">
+        <div
+          key={p}
+          className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm ${
+            devices?.[p] === "mobile" ? "bg-yellow-100" : "bg-gray-50"
+          }`}
+        >
         <div className="flex items-center gap-3">
           <span className="text-lg">{devices?.[p] === "mobile" ? "📱" : "💻"}</span>
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
