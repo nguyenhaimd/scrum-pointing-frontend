@@ -5,14 +5,10 @@ import { useWindowSize } from '@react-hook/window-size';
 import { motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
-
 function getDeviceType() {
-  const ua = navigator.userAgent.toLowerCase();
-  const isMobile = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10|opera mini/.test(ua);
-  const isTablet = /ipad|android(?!.*mobile)/.test(ua);
-  return isMobile || isTablet ? "mobile" : "desktop";
+  const ua = navigator.userAgent;
+  return /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? "mobile" : "desktop";
 }
-
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
   secure: true,
@@ -52,7 +48,6 @@ export default function ScrumPointingApp() {
   const [votesRevealed, setVotesRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [participants, setParticipants] = useState([]);
-  const [devices, setDevices] = useState({});
   const [participantRoles, setParticipantRoles] = useState({});
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
@@ -395,6 +390,9 @@ socket.on('sessionTerminated', () => {
       emoji: myMood,
       device: getDeviceType()
     });
+    setHasJoined(true);
+    setGlobalStartTime(Date.now());
+    setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
   };
 
   const castVote = (point) => {
@@ -550,15 +548,21 @@ const cancelStart = () => {
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         onClick={() => {
-    console.log('📱 Device Type Detected:', getDeviceType());
-    socket.emit('join', {
-      nickname,
-      room,
-      role,
-      avatar: selectedAvatar,
-      emoji: myMood,
-      device: getDeviceType()
-    });
+          console.log('📱 Device Type Detected:', getDeviceType());
+          socket.emit('join', {
+            nickname,
+            room,
+            role,
+            avatar: selectedAvatar,
+            emoji: myMood,
+            device: getDeviceType()
+          });
+            nickname,
+            room,
+            role,
+            avatar: selectedAvatar,
+            emoji: myMood
+          });
           setShowReconnectModal(false);
           toast.success('🔄 Attempting to reconnect...');
         }}
@@ -719,14 +723,8 @@ const cancelStart = () => {
     const mood = participantMoods[p];
 
     return (
-        <div
-          key={p}
-          className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm ${
-            devices?.[p] === "mobile" ? "bg-yellow-100" : "bg-gray-50"
-          }`}
-        >
+      <div key={p} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-lg">{devices?.[p] === "mobile" ? "📱" : "💻"}</span>
           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
           <div className="text-sm leading-tight">
             <div className="font-semibold text-gray-800">{p}</div>
