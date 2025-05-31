@@ -386,6 +386,7 @@ socket.on('sessionTerminated', () => {
         return;
       }
     }
+    console.log('📱 Device Type Detected:', getDeviceType());
     socket.emit('join', {
       nickname,
       room,
@@ -394,9 +395,6 @@ socket.on('sessionTerminated', () => {
       emoji: myMood,
       device: getDeviceType()
     });
-    setHasJoined(true);
-    setGlobalStartTime(Date.now());
-    setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
   };
 
   const castVote = (point) => {
@@ -552,13 +550,15 @@ const cancelStart = () => {
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         onClick={() => {
-          socket.emit('join', {
-            nickname,
-            room,
-            role,
-            avatar: selectedAvatar,
-            emoji: myMood
-          });
+    console.log('📱 Device Type Detected:', getDeviceType());
+    socket.emit('join', {
+      nickname,
+      room,
+      role,
+      avatar: selectedAvatar,
+      emoji: myMood,
+      device: getDeviceType()
+    });
           setShowReconnectModal(false);
           toast.success('🔄 Attempting to reconnect...');
         }}
