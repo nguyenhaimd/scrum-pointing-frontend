@@ -52,7 +52,7 @@ export default function ScrumPointingApp() {
   );
   const [hasJoined, setHasJoined]             = useState(false);
   const [storyTitle, setStoryTitle]           = useState('');
-  const [storyQueue, setStoryQueue]           = useState([]);
+  const [storyQueue, setStoryQueue]           = useState([]);      // ← Story queue state
   const [sessionActive, setSessionActive]     = useState(false);
   const [vote, setVote]                       = useState(null);
   const [votes, setVotes]                     = useState({});
@@ -109,86 +109,66 @@ export default function ScrumPointingApp() {
 
   // Build tour steps based on the user's role
   const buildTourSteps = useCallback(() => {
-    const commonSteps = [
-      {
-        target: '#tour-join-btn',
-        content: 'First, enter your Team Name, Nickname, select a Role/Avatar, then click “Join” to enter the session.',
-        disableBeacon: true,
-      },
-      {
-        target: '#tour-participants',
-        content: 'This panel shows everyone in the session. You can see Online/Offline status, mood, and whether people are on Mobile or Desktop.',
-      },
-      {
-        target: '#tour-vote-container',
-        content: 'As a Developer, you click one of these buttons to cast your estimate. The selected button becomes highlighted.',
-        placement: 'bottom',
-      },
-      {
-        target: '#tour-reveal-btn',
-        content: 'When you’re ready, the Scrum Master clicks “Reveal Votes” to show everyone’s votes together.',
-        placement: 'top',
-      },
-      {
-        target: '#tour-chat-input',
-        content: 'Use this chat box to send messages to the whole team in real time.',
-      },
-    ];
+    if (!hasJoined) return [];
 
     if (isScrumMaster) {
       return [
         {
           target: '#tour-join-btn',
-          content: 'As the Scrum Master, join first and then you’ll see additional controls.',
+          content: 'As Scrum Master, enter your details here and click “Join.”',
           disableBeacon: true,
         },
         {
           target: '#tour-add-story',
-          content: 'You can add stories here. Type a title, then click “Add Story” to queue it.',
+          content: 'Type a story title here and click “Add Story” to queue it.',
+        },
+        {
+          target: '#tour-add-story-btn',
+          content: 'Click this button to add your typed story to the queue below.',
         },
         {
           target: '#tour-story-queue',
-          content: 'Queued stories appear here. Click ▶️ to start a picking round for that story.',
-        },
-        {
-          target: '#tour-vote-container',
-          content: 'Developers will vote on these buttons. You monitor progress here.',
-        },
-        {
-          target: '#tour-reveal-btn',
-          content: 'When all votes are in (or you’re ready), click “Reveal Votes.”',
+          content: 'All queued stories appear here. Click ▶️ to start voting on that story, or Remove to delete it.',
         },
         {
           target: '#tour-participants',
-          content: 'You can see who’s online/offline, and if anyone’s disconnected you can remove them.',
+          content: 'This panel shows everyone’s status (online/offline), mood, and device type (mobile/desktop).',
+        },
+        {
+          target: '#tour-vote-container',
+          content: 'Developers will vote here. You can monitor progress as they click a number.',
+        },
+        {
+          target: '#tour-reveal-btn',
+          content: 'When you’re ready, click “Reveal Votes” to show everyone’s votes at once.',
         },
         {
           target: '#tour-chat-input',
-          content: 'Chat here with the team. Vote summaries will also appear in chat.',
+          content: 'Use chat to send messages. Vote summaries also appear in chat.',
         },
       ];
     } else if (isDeveloper) {
       return [
         {
           target: '#tour-join-btn',
-          content: 'Enter your details and join the session.',
+          content: 'Enter your details and click “Join.”',
           disableBeacon: true,
         },
         {
           target: '#tour-participants',
-          content: 'See who else is in the session, whether they’re online/offline, and what mood they’re in.',
+          content: 'View who’s in the session, their status, mood, and device type.',
         },
         {
           target: '#tour-vote-container',
-          content: 'Click a number to cast your estimate. The selected button will highlight so you know it’s been registered.',
+          content: 'Click a number to cast your estimate. The selected button highlights so you know it’s registered.',
         },
         {
           target: '#tour-reveal-btn',
-          content: 'Wait here until the Scrum Master reveals the votes.',
+          content: 'Wait here until the Scrum Master clicks “Reveal Votes.”',
         },
         {
           target: '#tour-chat-input',
-          content: 'Send messages to your team here while waiting.',
+          content: 'Chat with your team while votes are in progress.',
         },
       ];
     } else {
@@ -196,37 +176,37 @@ export default function ScrumPointingApp() {
       return [
         {
           target: '#tour-join-btn',
-          content: 'Join the session to observe the voting.',
+          content: 'Enter your details and click “Join.”',
           disableBeacon: true,
         },
         {
           target: '#tour-participants',
-          content: 'View participant status, mood, and device type here.',
+          content: 'Watch the participant list to see who’s online/offline, their mood, and their device.',
         },
         {
           target: '#tour-vote-container',
-          content: 'As an Observer, you cannot vote, but you can watch votes being cast by others.',
+          content: 'As an Observer, you cannot vote; you just watch votes being cast by Developers.',
         },
         {
           target: '#tour-reveal-btn',
-          content: 'Wait for the Scrum Master to reveal everyone’s votes.',
+          content: 'Wait for the Scrum Master to reveal all votes together.',
         },
         {
           target: '#tour-chat-input',
-          content: 'Feel free to chat or react with emojis while you watch.',
+          content: 'Feel free to send messages or reactions while you watch.',
         },
       ];
     }
-  }, [isScrumMaster, isDeveloper, isObserver]);
+  }, [hasJoined, isScrumMaster, isDeveloper]);
 
-  // Whenever role or hasJoined changes, recalculate steps
+  // Recompute steps when role or hasJoined changes
   useEffect(() => {
     setTourSteps(buildTourSteps());
   }, [buildTourSteps]);
 
-  // Joyride callback: Stop tour when finished or skipped
+  // Joyride callback: stop tour when finished or skipped
   const handleTourCallback = (data) => {
-    const { status, index, action } = data;
+    const { status } = data;
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRunTour(false);
     }
@@ -599,7 +579,7 @@ export default function ScrumPointingApp() {
           }}
         />
 
-        {/* ─── Top Bar: Dark Mode Toggle + User Info + Start Tour ───────────── */}
+        {/* ─── Top Bar: Dark Mode Toggle + Guided Tour + User Info ───────────── */}
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -609,7 +589,7 @@ export default function ScrumPointingApp() {
             {darkMode ? '☀️' : '☾'}
           </button>
 
-          {/* Start Tour Button */}
+          {/* Start Tour Button (only after joining) */}
           {hasJoined && (
             <button
               onClick={() => setRunTour(true)}
@@ -1190,7 +1170,7 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* ─── Scrum Master Add Story ───────────────────────────────────────────── */}
+                {/* ─── Scrum Master: Add & Manage Story Queue ───────────────────────── */}
                 {!sessionActive && isScrumMaster && (
                   <div className="mb-6">
                     <input
@@ -1200,42 +1180,58 @@ export default function ScrumPointingApp() {
                       value={storyTitle}
                       onChange={(e) => setStoryTitle(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleStartSession(storyTitle, 0);
+                        if (e.key === 'Enter' && storyTitle.trim()) {
+                          // Add story to queue
+                          socket.emit('updateStoryQueue', [...storyQueue, storyTitle.trim()]);
+                          setStoryQueue((prev) => [...prev, storyTitle.trim()]);
+                          setStoryTitle('');
+                        }
                       }}
                     />
                     <button
                       id="tour-add-story-btn"
                       className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-600"
-                      onClick={() => handleStartSession(storyTitle, 0)}
+                      onClick={() => {
+                        if (storyTitle.trim()) {
+                          socket.emit('updateStoryQueue', [...storyQueue, storyTitle.trim()]);
+                          setStoryQueue((prev) => [...prev, storyTitle.trim()]);
+                          setStoryTitle('');
+                        }
+                      }}
                     >
                       Add Story
                     </button>
+
                     {storyQueue.length > 0 && (
                       <div id="tour-story-queue" className="mt-4">
                         <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">
                           Queued Stories:
                         </h3>
-                        {storyQueue.map((title, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border dark:border-gray-600 text-left px-4 py-2 mb-1 rounded"
-                          >
-                            <button
-                              className="flex-1 text-left text-gray-800 dark:text-gray-200"
-                              onClick={() => handleStartSession(title, index)}
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+                          {storyQueue.map((title, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border dark:border-gray-600 text-left px-4 py-2 rounded"
                             >
-                              ▶️ {title}
-                            </button>
-                            <button
-                              className="text-red-600 dark:text-red-400 text-sm ml-2 hover:text-red-800 dark:hover:text-red-600"
-                              onClick={() =>
-                                setStoryQueue(storyQueue.filter((_, i) => i !== index))
-                              }
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
+                              <button
+                                className="flex-1 text-left text-gray-800 dark:text-gray-200"
+                                onClick={() => handleStartSession(title, index)}
+                              >
+                                ▶️ {title}
+                              </button>
+                              <button
+                                className="text-red-600 dark:text-red-400 text-sm ml-2 hover:text-red-800 dark:hover:text-red-600"
+                                onClick={() => {
+                                  const newQueue = storyQueue.filter((_, i) => i !== index);
+                                  socket.emit('updateStoryQueue', newQueue);
+                                  setStoryQueue(newQueue);
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
