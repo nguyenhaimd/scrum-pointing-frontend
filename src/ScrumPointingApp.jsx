@@ -1,13 +1,15 @@
+// src/ScrumPointingApp.jsx
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import Joyride, { STATUS } from 'react-joyride';
+import Joyride from 'react-joyride';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@react-hook/window-size';
 import { motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 //
-// ─── DEVICE DETECTION FUNCTION ───────────────────────────────────────────────
+// ─── UTILITY: Detect Mobile vs. Desktop ────────────────────────────────────────
 //
 function getDeviceType() {
   const ua = navigator.userAgent;
@@ -15,7 +17,7 @@ function getDeviceType() {
 }
 
 //
-// ─── SOCKET.IO SETUP ───────────────────────────────────────────────────────────
+// ─── SOCKET.IO CONNECTION ─────────────────────────────────────────────────────
 //
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
@@ -23,6 +25,9 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
   reconnectionAttempts: 5,
 });
 
+//
+// ─── CONSTANTS ─────────────────────────────────────────────────────────────────
+//
 const POINT_OPTIONS = [1, 2, 3, 5, 8, 13];
 const ROLE_OPTIONS = ['Developer', 'Observer', 'Product Owner', 'Scrum Master'];
 const MOOD_OPTIONS = {
@@ -43,7 +48,7 @@ const AVATAR_EMOJIS = [
 const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','👏','😮','💯','🔥','😍'];
 
 export default function ScrumPointingApp() {
-  // ─── STATE HOOKS ─────────────────────────────────────────────────────────────
+  // ─── STATE DECLARATIONS ─────────────────────────────────────────────────────
   const [nickname, setNickname]               = useState('');
   const [room, setRoom]                       = useState('AFOSR Pega Developers');
   const [role, setRole]                       = useState('Developer');
@@ -51,100 +56,114 @@ export default function ScrumPointingApp() {
     AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
   );
   const [hasJoined, setHasJoined]             = useState(false);
+
   const [storyTitle, setStoryTitle]           = useState('');
-  const [storyQueue, setStoryQueue]           = useState([]);      // ← Story queue state
+  const [storyQueue, setStoryQueue]           = useState([]);
   const [sessionActive, setSessionActive]     = useState(false);
   const [vote, setVote]                       = useState(null);
   const [votes, setVotes]                     = useState({});
   const [votesRevealed, setVotesRevealed]     = useState(false);
   const [showConfetti, setShowConfetti]       = useState(false);
+
   const [participants, setParticipants]       = useState([]);
   const [participantRoles, setParticipantRoles]       = useState({});
   const [participantAvatars, setParticipantAvatars]   = useState({});
   const [participantMoods, setParticipantMoods]       = useState({});
   const [participantConnections, setParticipantConnections] = useState({});
   const [devices, setDevices]                 = useState({});
+
   const [chatMessages, setChatMessages]       = useState([]);
   const [chatInput, setChatInput]             = useState('');
-  const [reactions, setReactions]             = useState([]);
+  const [reactions, setReactions]             = useState([]); // flying emoji reactions
+  
   const [typingUsers, setTypingUsers]         = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('connected');
   const [error, setError]                     = useState('');
   const [showSidebar, setShowSidebar]         = useState(false);
+  const [showReactionsPanel, setShowReactionsPanel] = useState(false);
   const [myMood, setMyMood]                   = useState('😎');
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [elapsedSeconds, setElapsedSeconds]   = useState(0);
-  const [globalStartTime, setGlobalStartTime] = useState(null);
-  const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
-  const [voteStartTime, setVoteStartTime]     = useState(null);
-  const [currentUserInfo, setCurrentUserInfo] = useState({});
-  const [showAbout, setShowAbout]             = useState(false);
 
-  // Dark mode
+  // Timers & vote history
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds]     = useState(0);
+  const [globalStartTime, setGlobalStartTime]   = useState(null);
+  const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
+  const [voteStartTime, setVoteStartTime]       = useState(null);
+  const [myVoteHistory, setMyVoteHistory]       = useState([]);
+
+  const [currentUserInfo, setCurrentUserInfo]   = useState({});
+  const [showAbout, setShowAbout]               = useState(false);
+
+  // Dark mode toggle
   const [darkMode, setDarkMode] = useState(false);
 
-  // Offline section state
-  const [showOffline, setShowOffline] = useState(false);
-
-  // Offline-vs-online arrays
-  const onlineParticipants  = participants.filter((p) => participantConnections[p]);
-  const offlineParticipants = participants.filter((p) => !participantConnections[p]);
-
-  // Additional state
+  // Offline check before starting a story
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineList, setOfflineList] = useState([]);
   const [pendingStart, setPendingStart] = useState(null);
-  const [myVoteHistory, setMyVoteHistory] = useState([]);
+
+  // Reconnection prompt
   const [showReconnectModal, setShowReconnectModal] = useState(false);
 
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
+
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper   = role === 'Developer';
   const isObserver    = role === 'Observer' || role === 'Product Owner';
 
-  // ─── JOYRIDE (GUIDED TOUR) STATE ──────────────────────────────────────────────
+  // Guided tour (react-joyride)
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
 
-  // Build tour steps based on the user's role
+  // KONAMI CODE EASTER EGG
+  const [konamiUnlocked, setKonamiUnlocked] = useState(false);
+  const KONAMI_SEQUENCE = [
+    'ArrowUp','ArrowUp',
+    'ArrowDown','ArrowDown',
+    'ArrowLeft','ArrowRight',
+    'ArrowLeft','ArrowRight',
+    'b','a'
+  ];
+  const [inputSequence, setInputSequence] = useState([]);
+
+  // ─── EFFECT: Build guided‐tour steps based on role ───────────────────────────
   const buildTourSteps = useCallback(() => {
     if (!hasJoined) return [];
-
     if (isScrumMaster) {
       return [
         {
           target: '#tour-join-btn',
-          content: 'As Scrum Master, enter your details here and click “Join.”',
+          content: 'As Scrum Master, fill in your info and click “Join.”',
           disableBeacon: true,
         },
         {
           target: '#tour-add-story',
-          content: 'Type a story title here and click “Add Story” to queue it.',
+          content: 'Type a story title here to queue it.',
         },
         {
           target: '#tour-add-story-btn',
-          content: 'Click this button to add your typed story to the queue below.',
+          content: 'Click to add your story to the queue below.',
         },
         {
           target: '#tour-story-queue',
-          content: 'All queued stories appear here. Click ▶️ to start voting on that story, or Remove to delete it.',
+          content: 'Your queued stories appear here. Click ▶️ to start voting.',
         },
         {
           target: '#tour-participants',
-          content: 'This panel shows everyone’s status (online/offline), mood, and device type (mobile/desktop).',
+          content: 'This column shows everyone’s status, mood, and device.',
         },
         {
           target: '#tour-vote-container',
-          content: 'Developers will vote here. You can monitor progress as they click a number.',
+          content: 'Developers vote here once a story is started.',
         },
         {
           target: '#tour-reveal-btn',
-          content: 'When you’re ready, click “Reveal Votes” to show everyone’s votes at once.',
+          content: 'Click “Reveal Votes” to see everyone’s estimates.',
         },
         {
           target: '#tour-chat-input',
-          content: 'Use chat to send messages. Vote summaries also appear in chat.',
+          content: 'Team chat and vote summaries appear here.',
         },
       ];
     } else if (isDeveloper) {
@@ -156,23 +175,22 @@ export default function ScrumPointingApp() {
         },
         {
           target: '#tour-participants',
-          content: 'View who’s in the session, their status, mood, and device type.',
+          content: 'See who’s online, their mood, and device type here.',
         },
         {
           target: '#tour-vote-container',
-          content: 'Click a number to cast your estimate. The selected button highlights so you know it’s registered.',
+          content: 'Click a number to cast your estimate; it will highlight.',
         },
         {
           target: '#tour-reveal-btn',
-          content: 'Wait here until the Scrum Master clicks “Reveal Votes.”',
+          content: 'Wait for the Scrum Master to reveal votes.',
         },
         {
           target: '#tour-chat-input',
-          content: 'Chat with your team while votes are in progress.',
+          content: 'Chat with your team while you wait.',
         },
       ];
     } else {
-      // Observer or Product Owner
       return [
         {
           target: '#tour-join-btn',
@@ -181,62 +199,45 @@ export default function ScrumPointingApp() {
         },
         {
           target: '#tour-participants',
-          content: 'Watch the participant list to see who’s online/offline, their mood, and their device.',
+          content: 'Check out participant status, mood, and device here.',
         },
         {
           target: '#tour-vote-container',
-          content: 'As an Observer, you cannot vote; you just watch votes being cast by Developers.',
+          content: 'As an Observer, you can watch votes but not vote yourself.',
         },
         {
           target: '#tour-reveal-btn',
-          content: 'Wait for the Scrum Master to reveal all votes together.',
+          content: 'Wait for votes to be revealed by the Scrum Master.',
         },
         {
           target: '#tour-chat-input',
-          content: 'Feel free to send messages or reactions while you watch.',
+          content: 'Feel free to chat or send emojis while you watch.',
         },
       ];
     }
   }, [hasJoined, isScrumMaster, isDeveloper]);
 
-  // Recompute steps when role or hasJoined changes
   useEffect(() => {
     setTourSteps(buildTourSteps());
   }, [buildTourSteps]);
 
-  // Joyride callback: stop tour when finished or skipped
-  const handleTourCallback = (data) => {
-    const { status } = data;
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setRunTour(false);
-    }
-  };
+  // ─── EFFECT: KONAMI CODE LISTENER ─────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const key = e.key;
+      setInputSequence(prev => {
+        const nextSeq = [...prev, key].slice(-KONAMI_SEQUENCE.length);
+        if (nextSeq.join(',') === KONAMI_SEQUENCE.join(',')) {
+          setKonamiUnlocked(true);
+        }
+        return nextSeq;
+      });
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  // ─── TIMERS & CONSENSUS ────────────────────────────────────────────────────────
-  const totalDevelopers = participants.filter((p) => participantRoles[p] === 'Developer').length;
-  const votesCast       = participants.filter(
-    (p) => participantRoles[p] === 'Developer' && votes[p] !== null
-  ).length;
-
-  const getConsensus = () => {
-    const values = Object.entries(votes)
-      .filter(([u]) => participantRoles[u] === 'Developer')
-      .map(([_, v]) => Number(v));
-    if (!values.length) return [];
-    const freq = values.reduce((acc, val) => {
-      acc[val] = (acc[val] || 0) + 1;
-      return acc;
-    }, {});
-    const maxFreq = Math.max(...Object.values(freq));
-    return Object.entries(freq)
-      .filter(([_, f]) => f === maxFreq)
-      .map(([v]) => Number(v))
-      .sort((a, b) => a - b);
-  };
-  const consensusPoints = votesRevealed ? getConsensus() : [];
-
-  // ─── EFFECTS ───────────────────────────────────────────────────────────────────
-  // Timer for sessionStartTime
+  // ─── EFFECT: Session Timer ────────────────────────────────────────────────────
   useEffect(() => {
     let timer;
     if (sessionStartTime) {
@@ -249,7 +250,7 @@ export default function ScrumPointingApp() {
     return () => clearInterval(timer);
   }, [sessionStartTime]);
 
-  // Timer for globalStartTime
+  // ─── EFFECT: Global Timer ─────────────────────────────────────────────────────
   useEffect(() => {
     let timer;
     if (globalStartTime) {
@@ -260,31 +261,28 @@ export default function ScrumPointingApp() {
     return () => clearInterval(timer);
   }, [globalStartTime]);
 
-  // ─── SOCKET.EVENT LISTENERS ────────────────────────────────────────────────────
+  // ─── SOCKET.IO LISTENERS ──────────────────────────────────────────────────────
   useEffect(() => {
+    // Update story queue
     socket.on('updateStoryQueue', (queue) => {
       setStoryQueue(queue);
     });
 
-    socket.on(
-      'participantsUpdate',
-      ({ names, roles, avatars, moods, connected, devices }) => {
-        setParticipants(names);
-        setParticipantRoles(roles || {});
-        setParticipantAvatars(avatars || {});
-        setParticipantMoods(moods || {});
+    // Participants update (includes devices)
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
+      setParticipants(names);
+      setParticipantRoles(roles || {});
+      setParticipantAvatars(avatars || {});
+      setParticipantMoods(moods || {});
 
-        // Online/offline map
-        const connectionMap = names.reduce((acc, name) => {
-          acc[name] = connected?.includes(name);
-          return acc;
-        }, {});
-        setParticipantConnections(connectionMap);
+      const connectionMap = names.reduce((acc, name) => {
+        acc[name] = connected.includes(name);
+        return acc;
+      }, {});
+      setParticipantConnections(connectionMap);
 
-        // Save devices
-        setDevices(devices || {});
-      }
-    );
+      setDevices(devices || {});
+    });
 
     socket.on('userJoined', (user) => {
       toast.success(`🔵 ${user} joined the room.`);
@@ -292,28 +290,27 @@ export default function ScrumPointingApp() {
 
     socket.on('userLeft', (user) => {
       toast(`🔴 ${user} left the room.`, { icon: '👋' });
-      setChatMessages((prev) => [
+      setChatMessages(prev => [
         ...prev,
-        { sender: 'System', text: `${user} disconnected.` },
+        { sender: 'System', text: `${user} disconnected.` }
       ]);
     });
 
     socket.on('updateVotes', (updatedVotes) => setVotes(updatedVotes));
-    socket.on('typingUpdate', (users) =>
-      setTypingUsers(users.filter((u) => u !== nickname))
-    );
+    socket.on('typingUpdate', (users) => setTypingUsers(users.filter(u => u !== nickname)));
+
+    // Incoming emoji reactions
     socket.on('emojiReaction', ({ sender, emoji }) => {
       const id = Date.now();
-      const randomX = Math.random() * 80 + 10;
-      const randomY = Math.random() * 60 + 10;
-      const randomScale = Math.random() * 0.5 + 1;
-      setReactions((prev) => [
+      const randomX = Math.random() * 80 + 10; // 10%–90% width
+      const randomY = Math.random() * 10 + 80; // 80%–90% height
+      setReactions(prev => [
         ...prev,
-        { id, sender, emoji, x: randomX, y: randomY, scale: randomScale },
+        { id, sender, emoji, x: randomX, startY: randomY }
       ]);
       setTimeout(() => {
-        setReactions((prev) => prev.filter((r) => r.id !== id));
-      }, 4000);
+        setReactions(prev => prev.filter(r => r.id !== id));
+      }, 1200);
     });
 
     socket.on('startSession', (title) => {
@@ -355,8 +352,9 @@ export default function ScrumPointingApp() {
     });
 
     socket.on('teamChat', (msg) => {
-      setChatMessages((prev) => {
+      setChatMessages(prev => {
         if (msg.type === 'voteSummary') {
+          // collapse previous summaries
           const collapsed = prev.map((m) => {
             if (m.type === 'voteSummary') {
               return { ...m, summary: { ...m.summary, expand: false } };
@@ -397,14 +395,14 @@ export default function ScrumPointingApp() {
     };
   }, [nickname]);
 
-  // ─── SCROLL CHAT ON NEW MESSAGES ───────────────────────────────────────────────
+  // ─── SCROLL CHAT TO BOTTOM ON NEW MESSAGE ─────────────────────────────────────
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
-  // ─── CHECK CONNECTION EVERY 10S ─────────────────────────────────────────────────
+  // ─── CHECK CONNECTION EVERY 10s ───────────────────────────────────────────────
   useEffect(() => {
     const checkConnection = () => {
       if (socket.disconnected) {
@@ -416,20 +414,27 @@ export default function ScrumPointingApp() {
     return () => clearInterval(interval);
   }, []);
 
-  // ─── TYPING & CHAT HANDLERS ─────────────────────────────────────────────────────
+  // ─── TYPING & CHAT HANDLERS ───────────────────────────────────────────────────
   const sendChatMessage = () => {
-    if (chatInput.trim()) {
-      socket.emit('teamChat', { room, sender: nickname, text: chatInput });
-      setChatInput('');
-    }
-  };
+    const text = chatInput.trim();
+    if (!text) return;
 
-  const sendReaction = (emoji) => {
-    socket.emit('emojiReaction', { sender: nickname, emoji });
+    // If user typed "haifetti" (case-insensitive), trigger confetti
+    if (text.toLowerCase() === 'haifetti') {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 10000);
+    }
+
+    socket.emit('teamChat', { room, sender: nickname, text });
+    setChatInput('');
   };
 
   const handleTyping = () => {
     socket.emit('userTyping');
+  };
+
+  const sendReaction = (emoji) => {
+    socket.emit('emojiReaction', { sender: nickname, emoji });
   };
 
   const updateMood = (emoji) => {
@@ -437,7 +442,7 @@ export default function ScrumPointingApp() {
     socket.emit('updateMood', { nickname, emoji });
   };
 
-  // ─── JOIN / VOTE / SESSION HANDLERS ──────────────────────────────────────────────
+  // ─── JOIN / VOTE / SESSION HANDLERS ────────────────────────────────────────────
   const join = () => {
     setError('');
     if (!nickname.trim() || !room.trim()) {
@@ -445,22 +450,20 @@ export default function ScrumPointingApp() {
       return;
     }
     if (role === 'Scrum Master') {
-      const existingSMs = participants.filter((p) => participantRoles[p] === 'Scrum Master');
+      const existingSMs = participants.filter(p => participantRoles[p] === 'Scrum Master');
       if (existingSMs.length > 0) {
         setError('There is already a Scrum Master in this room.');
         return;
       }
     }
-    const joinData = {
+    socket.emit('join', {
       nickname,
       room,
       role,
       avatar: selectedAvatar,
       emoji: myMood,
       device: getDeviceType(),
-    };
-    console.log('📱 Device Type Detected:', joinData.device);
-    socket.emit('join', joinData);
+    });
     setHasJoined(true);
     setGlobalStartTime(Date.now());
     setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
@@ -469,9 +472,9 @@ export default function ScrumPointingApp() {
   const castVote = (point) => {
     setVote(point);
     socket.emit('vote', { nickname, point });
-    setMyVoteHistory((prev) => {
+    setMyVoteHistory(prev => {
       const story = storyTitle || 'Untitled Story';
-      const filtered = prev.filter((item) => item.story !== story);
+      const filtered = prev.filter(item => item.story !== story);
       return [...filtered, { story, point }];
     });
   };
@@ -482,18 +485,18 @@ export default function ScrumPointingApp() {
     const voteSummary = {
       story: storyTitle || 'Untitled Story',
       votes: participants
-        .filter((p) => participantRoles[p] === 'Developer')
-        .map((p) => ({
-          name: p,
+        .filter(p => participantRoles[p] === 'Developer')
+        .map(p => ({
+          name:   p,
           avatar: participantAvatars[p] || '❓',
-          point: votes[p] !== null ? votes[p] : '—',
+          point:  votes[p] !== null ? votes[p] : '—',
         })),
       consensus,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       expand: true,
     };
-    setChatMessages((prev) => {
-      const updated = prev.map((m) => {
+    setChatMessages(prev => {
+      const updated = prev.map(m => {
         if (m.type === 'voteSummary') {
           return { ...m, summary: { ...m.summary, expand: false } };
         }
@@ -504,7 +507,7 @@ export default function ScrumPointingApp() {
     socket.emit('teamChat', {
       sender: 'System',
       type: 'voteSummary',
-      summary: voteSummary,
+      summary: voteSummary
     });
   };
 
@@ -512,7 +515,7 @@ export default function ScrumPointingApp() {
 
   const startSession = (title, index) => {
     socket.emit('startSession', { title, room });
-    setStoryQueue(storyQueue.filter((_, i) => i !== index));
+    setStoryQueue(prev => prev.filter((_, i) => i !== index));
   };
 
   const initiateRevote = () => {
@@ -525,8 +528,8 @@ export default function ScrumPointingApp() {
 
   const handleStartSession = (title, index) => {
     const offline = participants
-      .filter((p) => participantRoles[p] === 'Developer')
-      .filter((p) => !participantConnections[p]);
+      .filter(p => participantRoles[p] === 'Developer')
+      .filter(p => !participantConnections[p]);
     if (offline.length) {
       setOfflineList(offline);
       setPendingStart({ title, index });
@@ -549,37 +552,117 @@ export default function ScrumPointingApp() {
     setPendingStart(null);
   };
 
-  // ─── TIME FORMAT ───────────────────────────────────────────────────────────────
+  const logout = () => {
+    socket.emit('logout');
+    // Reset all local state back to initial
+    setHasJoined(false);
+    setNickname('');
+    setRoom('AFOSR Pega Developers');
+    setRole('Developer');
+    setSelectedAvatar(AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]);
+    setStoryTitle('');
+    setStoryQueue([]);
+    setSessionActive(false);
+    setVote(null);
+    setVotes({});
+    setVotesRevealed(false);
+    setShowConfetti(false);
+    setParticipants([]);
+    setParticipantRoles({});
+    setParticipantAvatars({});
+    setParticipantMoods({});
+    setParticipantConnections({});
+    setChatMessages([]);
+    setChatInput('');
+    setReactions([]);
+    setTypingUsers([]);
+    setConnectionStatus('connected');
+    setError('');
+    setShowSidebar(false);
+    setMyMood('😎');
+    setSessionStartTime(null);
+    setElapsedSeconds(0);
+    setGlobalStartTime(null);
+    setGlobalElapsedSeconds(0);
+    setVoteStartTime(null);
+    setCurrentUserInfo({});
+    setShowAbout(false);
+    setShowReconnectModal(false);
+    setMyVoteHistory([]);
+  };
+
+  // ─── CALCULATE CONSENSUS ─────────────────────────────────────────────────────
+  const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
+  const votesCast = participants.filter(
+    p => participantRoles[p] === 'Developer' && votes[p] !== null
+  ).length;
+
+  const getConsensus = () => {
+    const values = Object.entries(votes)
+      .filter(([u]) => participantRoles[u] === 'Developer')
+      .map(([_, v]) => Number(v));
+    if (!values.length) return [];
+    const freq = values.reduce((acc, val) => {
+      acc[val] = (acc[val] || 0) + 1; return acc;
+    }, {});
+    const maxFreq = Math.max(...Object.values(freq));
+    return Object.entries(freq)
+      .filter(([_, f]) => f === maxFreq)
+      .map(([v]) => Number(v))
+      .sort((a, b) => a - b);
+  };
+  const consensusPoints = votesRevealed ? getConsensus() : [];
+
+  // ─── FORMAT TIME ─────────────────────────────────────────────────────────────
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // ─── RETURN JSX ────────────────────────────────────────────────────────────────
+  // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
-    // Toggle dark mode on root div with `dark` class
-    <div className={`${darkMode ? 'dark' : ''}`}>
+    <div className={darkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 from-sky-100 to-blue-200 p-4 font-sans text-gray-800 dark:text-gray-100 relative">
         <Toaster position="top-right" reverseOrder={false} />
 
-        {/* ─── JOYRIDE: Guided Tour Component ─────────────────────────────────── */}
+        {/* ─── GUIDED TOUR ───────────────────────────────────────────────────────── */}
         <Joyride
           steps={tourSteps}
           run={runTour}
           continuous={true}
           scrollToFirstStep={true}
           showSkipButton={true}
-          callback={handleTourCallback}
-          spotlightPadding={6}
-          styles={{
-            options: {
-              zIndex: 10000,
-            },
+          styles={{ options: { zIndex: 10000 } }}
+          callback={(data) => {
+            const { status } = data;
+            if ([ 'finished', 'skipped' ].includes(status)) {
+              setRunTour(false);
+            }
           }}
         />
 
-        {/* ─── Top Bar: Dark Mode Toggle + Guided Tour + User Info ───────────── */}
+        {/* ─── KONAMI EASTER EGG MODAL ───────────────────────────────────────────── */}
+        {konamiUnlocked && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-sm">
+              <h2 className="text-2xl font-bold text-purple-700 mb-4 dark:text-purple-300">
+                🎉 Konami Unlocked! 🎉
+              </h2>
+              <p className="mb-4 text-gray-800 dark:text-gray-200">
+                You found the secret Easter Egg! Enjoy this special theme for a while. 😎
+              </p>
+              <button
+                className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
+                onClick={() => setKonamiUnlocked(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Top Bar: Dark Mode + Guided Tour + User Info ─────────────────────── */}
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -589,7 +672,6 @@ export default function ScrumPointingApp() {
             {darkMode ? '☀️' : '☾'}
           </button>
 
-          {/* Start Tour Button (only after joining) */}
           {hasJoined && (
             <button
               onClick={() => setRunTour(true)}
@@ -602,14 +684,14 @@ export default function ScrumPointingApp() {
 
           {hasJoined && (
             <div className="flex items-center space-x-2">
-              <span>You are:</span>
+              <span className="text-xs dark:text-gray-300">You are:</span>
               <span className="text-2xl">{currentUserInfo.avatar}</span>
               <span className="font-bold">{currentUserInfo.nickname}</span>
-              <span>({currentUserInfo.role})</span>
+              <span className="text-xs">({currentUserInfo.role})</span>
               {isScrumMaster && (
                 <button
                   id="tour-end-session"
-                  className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap ml-4"
+                  className="bg-red-800 dark:bg-red-900 text-white px-3 py-1 rounded hover:bg-red-900 dark:hover:bg-red-700 text-xs whitespace-nowrap ml-4"
                   onClick={() => socket.emit('endPointingSession')}
                 >
                   End Session
@@ -619,7 +701,64 @@ export default function ScrumPointingApp() {
           )}
         </div>
 
-        {/* ─── Offline Reconnect / Banners ─────────────────────────────────────── */}
+        {/* ─── COLLAPSIBLE “REACTIONS & MOOD” PANEL ───────────────────────────────── */}
+        <div className="mb-4">
+          <button
+            className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            onClick={() => setShowReactionsPanel(prev => !prev)}
+          >
+            <span className="font-semibold">Reactions & Mood</span>
+            <span>{showReactionsPanel ? '▲' : '▼'}</span>
+          </button>
+
+          {showReactionsPanel && (
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-b-lg p-4 space-y-4">
+              {/* ── Mood Selector ─────────────────────────────────────────── */}
+              <div>
+                <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Select Your Current Mood:
+                </div>
+                <div className="flex justify-center gap-3 flex-wrap">
+                  {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+                    <button
+                      key={emoji}
+                      onClick={() => updateMood(emoji)}
+                      className={`text-2xl p-2 rounded-full transition ${
+                        myMood === emoji
+                          ? 'bg-blue-200 dark:bg-blue-700 border-2 border-blue-500 dark:border-blue-300'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                      title={label}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Emoji Reaction Buttons ───────────────────────────────── */}
+              <div>
+                <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Send a Quick Emoji Reaction:
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {REACTION_EMOJIS.map((emoji, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => sendReaction(emoji)}
+                      className="text-2xl hover:scale-125 transition"
+                      title={`React with ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── OFFLINE / RECONNECT BANNERS ─────────────────────────────────────── */}
         {showOfflineModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-11/12 max-w-md space-y-4">
@@ -630,7 +769,7 @@ export default function ScrumPointingApp() {
                 The following {offlineList.length > 1 ? 'developers are' : 'developer is'} disconnected:
               </p>
               <ul className="list-disc list-inside text-sm text-gray-800 dark:text-gray-200 mb-4">
-                {offlineList.map((name) => (
+                {offlineList.map(name => (
                   <li key={name}>{name}</li>
                 ))}
               </ul>
@@ -655,25 +794,25 @@ export default function ScrumPointingApp() {
         {hasJoined && showReconnectModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
-              <h2 className="text-lg font-semibold mb-3 dark:text-gray-100">You’ve been disconnected</h2>
+              <h2 className="text-lg font-semibold mb-3 dark:text-gray-100">
+                You’ve been disconnected
+              </h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Tap below to rejoin the session once internet is restored.
+                Tap below to rejoin once internet is restored.
               </p>
               <button
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 onClick={() => {
-                  const rejoinData = {
+                  socket.emit('join', {
                     nickname,
                     room,
                     role,
                     avatar: selectedAvatar,
                     emoji: myMood,
                     device: getDeviceType(),
-                  };
-                  console.log('📱 Device Type Detected (Rejoin):', rejoinData.device);
-                  socket.emit('join', rejoinData);
+                  });
                   setShowReconnectModal(false);
-                  toast.success('🔄 Attempting to reconnect...');
+                  toast.success('🔄 Reconnecting...');
                 }}
               >
                 Rejoin Now
@@ -688,22 +827,20 @@ export default function ScrumPointingApp() {
           </div>
         )}
 
-        {/* ─── Floating Emoji Reactions ────────────────────────────────────────────── */}
-        <div className="fixed inset-0 z-50 pointer-events-none">
-          {reactions.map((r) => (
+        {/* ─── Floating Emoji Reactions (Improved) ───────────────────────────────── */}
+        <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden">
+          {reactions.map(r => (
             <motion.div
               key={r.id}
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.6, y: 0 }}
               animate={{
-                opacity: 1,
-                x: `${r.x}%`,
-                y: `-${r.y}vh`,
-                scale: r.scale,
-                transition: { duration: 1.5, ease: 'easeOut' },
+                opacity: [0, 1, 0],
+                scale: [0.6, 1, 0.8],
+                y: [`${r.startY}%`, `${r.startY - 15}%`, `${r.startY - 30}%`],
+                transition: { times: [0, 0.2, 1], duration: 1.2, ease: 'easeOut' }
               }}
-              exit={{ opacity: 0 }}
               className="absolute text-center"
-              style={{ left: `${r.x}%`, top: `${r.y}%` }}
+              style={{ left: `${r.x}%`, top: `${r.startY}%` }}
             >
               <div className="text-4xl">{r.emoji}</div>
               <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
@@ -711,16 +848,16 @@ export default function ScrumPointingApp() {
           ))}
         </div>
 
-        {/* ─── Layout: Sidebar + Main ───────────────────────────────────────────────── */}
+        {/* ─── LAYOUT: Sidebar + Main ────────────────────────────────────────────── */}
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* ─── Sidebar (Participants) ───────────────────────────────────────── */}
+          {/* ─── Sidebar (Participants) ───────────────────────────────────────────── */}
           <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
-            {/* Mobile toggle header */}
+            {/* Mobile collapse toggle */}
             {width < 1024 && (
               <div className="flex justify-between items-center mb-2 px-2">
-                <span className="font-semibold">Users in this session</span>
+                <span className="font-semibold dark:text-gray-300">Users in session</span>
                 <button
-                  className="text-sm text-blue-600 underline"
+                  className="text-sm text-blue-600 dark:text-blue-300 underline"
                   onClick={() => setShowSidebar(!showSidebar)}
                 >
                   {showSidebar ? 'Hide' : 'Show'}
@@ -728,36 +865,33 @@ export default function ScrumPointingApp() {
               </div>
             )}
 
-            {/* Render full list when width>=1024 or showSidebar is true */}
             {(showSidebar || width >= 1024) && (
               <div
                 id="tour-participants"
                 className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]"
               >
-                {/* Sticky Header */}
+                {/* Sticky header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
                   <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
-                    👥 Users Online: {onlineParticipants.length} / {participants.length}
+                    👥 Online: {Object.values(participantConnections).filter(Boolean).length} / {participants.length}
                   </div>
                   <div className="mb-3 text-sm text-center text-blue-700 dark:text-blue-300 font-medium">
-                    ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
+                    ⏱️ Elapsed: {formatTime(globalElapsedSeconds)}
                   </div>
                 </div>
 
-                {/* Online Participants: fixed-height cards; status/mood/device in one row */}
+                {/* All participants */}
                 <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
-                  {participants.map((p) => {
+                  {participants.map(p => {
                     const isConnected = participantConnections[p];
                     const roleName    = participantRoles[p];
                     const mood        = participantMoods[p];
                     const deviceType  = devices[p];
-
                     return (
                       <div
                         key={p}
                         className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
                       >
-                        {/* Avatar + Name/Role */}
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
                           <div className="flex flex-col">
@@ -769,8 +903,6 @@ export default function ScrumPointingApp() {
                             </div>
                           </div>
                         </div>
-
-                        {/* Status / Mood / Device (all in one row) */}
                         <div className="flex items-center gap-2 text-xs">
                           <span className={isConnected
                             ? 'text-green-600 dark:text-green-400 font-medium'
@@ -781,12 +913,10 @@ export default function ScrumPointingApp() {
                           {mood && (
                             <span className="text-gray-500 dark:text-gray-400">{mood}</span>
                           )}
-                          <span className="text-xs">
-                            {deviceType === 'mobile' ? '📱' : '💻'}
-                          </span>
+                          <span>{deviceType === 'mobile' ? '📱' : '💻'}</span>
                           {isScrumMaster && !isConnected && (
                             <button
-                              className="text-red-500 hover:underline text-xs"
+                              className="text-red-500 dark:text-red-400 hover:underline text-xs"
                               onClick={() => socket.emit('forceRemoveUser', p)}
                             >
                               Remove
@@ -799,70 +929,22 @@ export default function ScrumPointingApp() {
                 </div>
 
                 {/* Collapsible Offline Section */}
-                {offlineParticipants.length > 0 && (
-                  <div className="mt-4">
-                    <button
-                      className="w-full flex justify-between items-center text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
-                      onClick={() => setShowOffline(!showOffline)}
-                    >
-                      <span>🔴 Offline ({offlineParticipants.length})</span>
-                      <span>{showOffline ? '▲' : '▼'}</span>
-                    </button>
-
-                    {showOffline && (
-                      <div className="mt-2 grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
-                        {offlineParticipants.map((p) => {
-                          const roleName    = participantRoles[p];
-                          const mood        = participantMoods[p];
-                          const deviceType  = devices[p];
-
-                          return (
-                            <div
-                              key={p}
-                              className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                                <div className="flex flex-col">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
-                                    {p}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {roleName}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs">
-                                <span className="text-red-500 dark:text-red-400 font-medium">
-                                  🔴 Offline
-                                </span>
-                                {mood && (
-                                  <span className="text-gray-500 dark:text-gray-400">{mood}</span>
-                                )}
-                                <span className="text-xs">
-                                  {deviceType === 'mobile' ? '📱' : '💻'}
-                                </span>
-                                {isScrumMaster && !participantConnections[p] && (
-                                  <button
-                                    className="text-red-500 hover:underline text-xs"
-                                    onClick={() => socket.emit('forceRemoveUser', p)}
-                                  >
-                                    Remove
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                {participants.filter(p => !participantConnections[p]).length > 0 && (
+                  <OfflineSection
+                    participants={participants}
+                    connections={participantConnections}
+                    roles={participantRoles}
+                    moods={participantMoods}
+                    devices={devices}
+                    isScrumMaster={isScrumMaster}
+                    toggleVisibility={() => {}} /* placeholder */
+                  />
                 )}
               </div>
             )}
           </div>
 
-          {/* ─── Main Voting & Chat Area ───────────────────────────────────────── */}
+          {/* ─── Main Content (Voting, Chat, Queue) ─────────────────────────────── */}
           <div className="flex-1">
             {!hasJoined ? (
               <div className="max-w-md mx-auto text-center">
@@ -874,20 +956,20 @@ export default function ScrumPointingApp() {
                   className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   placeholder="Team Name"
                   value={room}
-                  onChange={(e) => setRoom(e.target.value)}
+                  onChange={e => setRoom(e.target.value)}
                 />
                 <input
                   className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   placeholder="Nickname"
                   value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  onChange={e => setNickname(e.target.value)}
                 />
                 <select
                   className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={e => setRole(e.target.value)}
                 >
-                  {ROLE_OPTIONS.map((r) => (
+                  {ROLE_OPTIONS.map(r => (
                     <option key={r} value={r}>
                       {r}
                     </option>
@@ -896,9 +978,9 @@ export default function ScrumPointingApp() {
                 <select
                   className="p-2 border rounded w-full mb-2 text-2xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   value={selectedAvatar}
-                  onChange={(e) => setSelectedAvatar(e.target.value)}
+                  onChange={e => setSelectedAvatar(e.target.value)}
                 >
-                  {AVATAR_EMOJIS.map((emoji) => (
+                  {AVATAR_EMOJIS.map(emoji => (
                     <option key={emoji} value={emoji}>
                       {emoji}
                     </option>
@@ -907,7 +989,7 @@ export default function ScrumPointingApp() {
                 <div className="text-4xl mt-2 text-center">{selectedAvatar}</div>
                 <button
                   id="tour-join-btn"
-                  className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition"
+                  className="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition"
                   onClick={join}
                 >
                   Join
@@ -931,8 +1013,8 @@ export default function ScrumPointingApp() {
                         />
                         <ul className="text-sm">
                           {participants
-                            .filter((p) => participantRoles[p] === 'Developer')
-                            .map((p) => (
+                            .filter(p => participantRoles[p] === 'Developer')
+                            .map(p => (
                               <li key={p}>
                                 {participantAvatars[p] || '❓'} {p} —{' '}
                                 {votes[p] ? '✅ Voted' : '⏳ Waiting'}
@@ -950,35 +1032,33 @@ export default function ScrumPointingApp() {
                     )}
 
                     {isDeveloper && !votesRevealed && (
-                      <>
-                        <div
-                          id="tour-vote-container"
-                          className="grid grid-cols-3 gap-4 mb-4 mt-6"
-                        >
-                          {POINT_OPTIONS.map((pt) => (
-                            <button
-                              key={pt}
-                              className={`
-                                py-4 px-6 rounded-xl font-bold text-xl shadow transition
-                                ${
-                                  vote === pt
-                                    ? 'bg-green-500 text-white border border-green-600'
-                                    : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-600'
-                                }
-                              `}
-                              onClick={() => castVote(pt)}
-                            >
-                              {pt}
-                            </button>
-                          ))}
-                        </div>
+                      <div
+                        id="tour-vote-container"
+                        className="grid grid-cols-3 gap-4 mb-4 mt-6"
+                      >
+                        {POINT_OPTIONS.map(pt => (
+                          <button
+                            key={pt}
+                            className={`
+                              py-4 px-6 rounded-xl font-bold text-xl shadow transition
+                              ${
+                                vote === pt
+                                  ? 'bg-green-500 text-white border border-green-600'
+                                  : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-600'
+                              }
+                            `}
+                            onClick={() => castVote(pt)}
+                          >
+                            {pt}
+                          </button>
+                        ))}
                         {vote && (
-                          <div className="bg-green-50 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded p-3 text-sm text-center shadow-sm mt-2">
+                          <div className="col-span-3 bg-green-50 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded p-3 text-sm text-center shadow-sm mt-2">
                             ✅ You can update your vote at any time until the Scrum Master
                             reveals it.
                           </div>
                         )}
-                      </>
+                      </div>
                     )}
 
                     {vote && (
@@ -996,12 +1076,9 @@ export default function ScrumPointingApp() {
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             {Object.entries(votes)
-                              .filter(
-                                ([user, pt]) =>
-                                  participantRoles[user] === 'Developer' &&
-                                  pt !== null &&
-                                  pt !== undefined &&
-                                  pt !== ''
+                              .filter(([user, pt]) =>
+                                participantRoles[user] === 'Developer' &&
+                                pt !== null && pt !== undefined && pt !== ''
                               )
                               .map(([user, pt]) => (
                                 <motion.div
@@ -1069,12 +1146,13 @@ export default function ScrumPointingApp() {
                   </>
                 )}
 
-                {/* ─── Chat Section ────────────────────────────────────────────────── */}
+                {/* ─── Chat Section ─────────────────────────────────────────────────── */}
                 <div className="text-left text-sm mb-4">
                   <h3 className="font-semibold mb-1 text-gray-800 dark:text-gray-200">
                     Team Chat
                   </h3>
                   <div
+                    id="tour-chat-input"
                     ref={chatRef}
                     className="h-32 lg:h-64 overflow-y-auto bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded p-2"
                   >
@@ -1093,7 +1171,7 @@ export default function ScrumPointingApp() {
                               📝 Summary for "{summary.story}"
                               <button
                                 onClick={() => {
-                                  setChatMessages((prev) =>
+                                  setChatMessages(prev =>
                                     prev.map((m, idx) =>
                                       idx === i
                                         ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
@@ -1114,10 +1192,7 @@ export default function ScrumPointingApp() {
                                 <ul className="list-disc ml-4 text-gray-800 dark:text-gray-200">
                                   {summary.votes
                                     .filter(
-                                      (v) =>
-                                        v.point !== null &&
-                                        v.point !== undefined &&
-                                        v.point !== ''
+                                      v => v.point !== null && v.point !== undefined && v.point !== ''
                                     )
                                     .map((v, idx) => (
                                       <li key={idx}>
@@ -1132,10 +1207,7 @@ export default function ScrumPointingApp() {
                       }
 
                       return (
-                        <div
-                          key={i}
-                          className="text-sm text-gray-800 dark:text-gray-200"
-                        >
+                        <div className="text-sm text-gray-800 dark:text-gray-200" key={i}>
                           <strong>{msg.sender}:</strong> {msg.text}
                         </div>
                       );
@@ -1144,19 +1216,17 @@ export default function ScrumPointingApp() {
                   <div className="h-5 mt-1">
                     {typingUsers.length > 0 && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                        {typingUsers.join(', ')}{' '}
-                        {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                        {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
                       </p>
                     )}
                   </div>
                   <div className="mt-2 flex gap-2">
                     <input
-                      id="tour-chat-input"
                       className="flex-1 border p-1 rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       placeholder="Type a message..."
                       value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => {
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => {
                         if (e.key === 'Enter') sendChatMessage();
                         else handleTyping();
                       }}
@@ -1170,7 +1240,7 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* ─── Scrum Master: Add & Manage Story Queue ───────────────────────── */}
+                {/* ─── Scrum Master: Add / Manage Story Queue ─────────────────────── */}
                 {!sessionActive && isScrumMaster && (
                   <div className="mb-6">
                     <input
@@ -1178,12 +1248,11 @@ export default function ScrumPointingApp() {
                       className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       placeholder="Add story title"
                       value={storyTitle}
-                      onChange={(e) => setStoryTitle(e.target.value)}
-                      onKeyDown={(e) => {
+                      onChange={e => setStoryTitle(e.target.value)}
+                      onKeyDown={e => {
                         if (e.key === 'Enter' && storyTitle.trim()) {
-                          // Add story to queue
                           socket.emit('updateStoryQueue', [...storyQueue, storyTitle.trim()]);
-                          setStoryQueue((prev) => [...prev, storyTitle.trim()]);
+                          setStoryQueue(prev => [...prev, storyTitle.trim()]);
                           setStoryTitle('');
                         }
                       }}
@@ -1194,14 +1263,13 @@ export default function ScrumPointingApp() {
                       onClick={() => {
                         if (storyTitle.trim()) {
                           socket.emit('updateStoryQueue', [...storyQueue, storyTitle.trim()]);
-                          setStoryQueue((prev) => [...prev, storyTitle.trim()]);
+                          setStoryQueue(prev => [...prev, storyTitle.trim()]);
                           setStoryTitle('');
                         }
                       }}
                     >
                       Add Story
                     </button>
-
                     {storyQueue.length > 0 && (
                       <div id="tour-story-queue" className="mt-4">
                         <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">
@@ -1291,6 +1359,71 @@ export default function ScrumPointingApp() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+//
+// ─── OFFLINE SECTION COMPONENT ─────────────────────────────────────────────────
+//
+function OfflineSection({ participants, connections, roles, moods, devices, isScrumMaster }) {
+  const [showOffline, setShowOffline] = useState(false);
+  const offlineParticipants = participants.filter(p => !connections[p]);
+
+  return (
+    <div className="mt-4">
+      <button
+        className="w-full flex justify-between items-center text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
+        onClick={() => setShowOffline(prev => !prev)}
+      >
+        <span>🔴 Offline ({offlineParticipants.length})</span>
+        <span>{showOffline ? '▲' : '▼'}</span>
+      </button>
+
+      {showOffline && (
+        <div className="mt-2 grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
+          {offlineParticipants.map(p => {
+            const roleName    = roles[p];
+            const mood        = moods[p];
+            const deviceType  = devices[p];
+            return (
+              <div
+                key={p}
+                className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{/* avatar would go here */}❓</span>
+                  <div className="flex flex-col">
+                    <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                      {p}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {roleName}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-red-500 dark:text-red-400 font-medium">
+                    🔴 Offline
+                  </span>
+                  {mood && (
+                    <span className="text-gray-500 dark:text-gray-400">{mood}</span>
+                  )}
+                  <span>{deviceType === 'mobile' ? '📱' : '💻'}</span>
+                  {isScrumMaster && (
+                    <button
+                      className="text-red-500 dark:text-red-400 hover:underline text-xs"
+                      onClick={() => socket.emit('forceRemoveUser', p)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
