@@ -602,7 +602,7 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants: fixed-height cards, no truncation */}
+                {/* Online Participants: fixed-height cards, no truncation, status/mood/device in one row */}
                 <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
                   {participants.map((p) => {
                     const isConnected = participantConnections[p];
@@ -613,7 +613,7 @@ export default function ScrumPointingApp() {
                     return (
                       <div
                         key={p}
-                        className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
+                        className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
                       >
                         {/* Avatar + Name/Role */}
                         <div className="flex items-center gap-3">
@@ -628,22 +628,20 @@ export default function ScrumPointingApp() {
                           </div>
                         </div>
 
-                        {/* Status / Mood / Device */}
-                        <div className="flex flex-col items-end text-xs space-y-1">
-                          <div className={isConnected
+                        {/* Status / Mood / Device (all in one row) */}
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={isConnected
                             ? 'text-green-600 dark:text-green-400 font-medium'
                             : 'text-red-500 dark:text-red-400 font-medium'
                           }>
                             {isConnected ? '🟢 Online' : '🔴 Offline'}
-                          </div>
+                          </span>
                           {mood && (
-                            <div className="text-gray-500 dark:text-gray-400 text-xs">
-                              {mood}
-                            </div>
+                            <span className="text-gray-500 dark:text-gray-400">{mood}</span>
                           )}
-                          <div className="text-xs">
+                          <span className="text-xs">
                             {deviceType === 'mobile' ? '📱' : '💻'}
-                          </div>
+                          </span>
                           {isScrumMaster && !isConnected && (
                             <button
                               className="text-red-500 hover:underline text-xs"
@@ -679,7 +677,7 @@ export default function ScrumPointingApp() {
                           return (
                             <div
                               key={p}
-                              className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
+                              className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
@@ -692,18 +690,16 @@ export default function ScrumPointingApp() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end text-xs space-y-1">
-                                <div className="text-red-500 dark:text-red-400 font-medium">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="text-red-500 dark:text-red-400 font-medium">
                                   🔴 Offline
-                                </div>
+                                </span>
                                 {mood && (
-                                  <div className="text-gray-500 dark:text-gray-400 text-xs">
-                                    {mood}
-                                  </div>
+                                  <span className="text-gray-500 dark:text-gray-400">{mood}</span>
                                 )}
-                                <div className="text-xs">
+                                <span className="text-xs">
                                   {deviceType === 'mobile' ? '📱' : '💻'}
-                                </div>
+                                </span>
                                 {isScrumMaster && !participantConnections[p] && (
                                   <button
                                     className="text-red-500 hover:underline text-xs"
