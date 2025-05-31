@@ -43,41 +43,41 @@ const REACTION_EMOJIS = ['👍','👎','🤔','🎉','❤️','😂','😢','�
 
 export default function ScrumPointingApp() {
   // ─── STATE HOOKS ─────────────────────────────────────────────────────────────
-  const [nickname, setNickname] = useState('');
-  const [room, setRoom] = useState('AFOSR Pega Developers');
-  const [role, setRole] = useState('Developer');
-  const [selectedAvatar, setSelectedAvatar] = useState(
+  const [nickname, setNickname]               = useState('');
+  const [room, setRoom]                       = useState('AFOSR Pega Developers');
+  const [role, setRole]                       = useState('Developer');
+  const [selectedAvatar, setSelectedAvatar]   = useState(
     AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
   );
-  const [hasJoined, setHasJoined] = useState(false);
-  const [storyTitle, setStoryTitle] = useState('');
-  const [storyQueue, setStoryQueue] = useState([]);
-  const [sessionActive, setSessionActive] = useState(false);
-  const [vote, setVote] = useState(null);
-  const [votes, setVotes] = useState({});
-  const [votesRevealed, setVotesRevealed] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [participants, setParticipants] = useState([]);
-  const [participantRoles, setParticipantRoles] = useState({});
-  const [participantAvatars, setParticipantAvatars] = useState({});
-  const [participantMoods, setParticipantMoods] = useState({});
+  const [hasJoined, setHasJoined]             = useState(false);
+  const [storyTitle, setStoryTitle]           = useState('');
+  const [storyQueue, setStoryQueue]           = useState([]);
+  const [sessionActive, setSessionActive]     = useState(false);
+  const [vote, setVote]                       = useState(null);
+  const [votes, setVotes]                     = useState({});
+  const [votesRevealed, setVotesRevealed]     = useState(false);
+  const [showConfetti, setShowConfetti]       = useState(false);
+  const [participants, setParticipants]       = useState([]);
+  const [participantRoles, setParticipantRoles]       = useState({});
+  const [participantAvatars, setParticipantAvatars]   = useState({});
+  const [participantMoods, setParticipantMoods]       = useState({});
   const [participantConnections, setParticipantConnections] = useState({});
-  const [devices, setDevices] = useState({}); // mobile/desktop map
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [reactions, setReactions] = useState([]);
-  const [typingUsers, setTypingUsers] = useState([]);
+  const [devices, setDevices]                 = useState({});
+  const [chatMessages, setChatMessages]       = useState([]);
+  const [chatInput, setChatInput]             = useState('');
+  const [reactions, setReactions]             = useState([]);
+  const [typingUsers, setTypingUsers]         = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('connected');
-  const [error, setError] = useState('');
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [myMood, setMyMood] = useState('😎');
+  const [error, setError]                     = useState('');
+  const [showSidebar, setShowSidebar]         = useState(false);
+  const [myMood, setMyMood]                   = useState('😎');
   const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds]   = useState(0);
   const [globalStartTime, setGlobalStartTime] = useState(null);
   const [globalElapsedSeconds, setGlobalElapsedSeconds] = useState(0);
-  const [voteStartTime, setVoteStartTime] = useState(null);
+  const [voteStartTime, setVoteStartTime]     = useState(null);
   const [currentUserInfo, setCurrentUserInfo] = useState({});
-  const [showAbout, setShowAbout] = useState(false);
+  const [showAbout, setShowAbout]             = useState(false);
 
   // Dark mode
   const [darkMode, setDarkMode] = useState(false);
@@ -85,11 +85,11 @@ export default function ScrumPointingApp() {
   // Offline section state
   const [showOffline, setShowOffline] = useState(false);
 
-  // Offline-vs-online arrays (computed each render)
-  const onlineParticipants = participants.filter((p) => participantConnections[p]);
+  // Offline-vs-online arrays
+  const onlineParticipants  = participants.filter((p) => participantConnections[p]);
   const offlineParticipants = participants.filter((p) => !participantConnections[p]);
 
-  // Additional state from original
+  // Additional state
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineList, setOfflineList] = useState([]);
   const [pendingStart, setPendingStart] = useState(null);
@@ -99,12 +99,12 @@ export default function ScrumPointingApp() {
   const [width, height] = useWindowSize();
   const chatRef = useRef(null);
   const isScrumMaster = role === 'Scrum Master';
-  const isDeveloper = role === 'Developer';
-  const isObserver = role === 'Observer' || role === 'Product Owner';
+  const isDeveloper   = role === 'Developer';
+  const isObserver    = role === 'Observer' || role === 'Product Owner';
 
   // ─── TIMERS & CONSENSUS ────────────────────────────────────────────────────────
   const totalDevelopers = participants.filter((p) => participantRoles[p] === 'Developer').length;
-  const votesCast = participants.filter(
+  const votesCast       = participants.filter(
     (p) => participantRoles[p] === 'Developer' && votes[p] !== null
   ).length;
 
@@ -171,7 +171,7 @@ export default function ScrumPointingApp() {
         }, {});
         setParticipantConnections(connectionMap);
 
-        // Save devices map
+        // Save devices
         setDevices(devices || {});
       }
     );
@@ -588,16 +588,16 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants (Single‐column compact cards) */}
+                {/* Online Participants (Single‐column, fixed‐height cards) */}
                 <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto pr-2 custom-scrollbar py-1">
                   {onlineParticipants.map((p) => {
-                    const roleName = participantRoles[p];
-                    const mood = participantMoods[p];
+                    const roleName   = participantRoles[p];
+                    const mood       = participantMoods[p];
                     const deviceType = devices[p];
                     return (
                       <div
                         key={p}
-                        className={`flex items-center justify-between rounded-lg px-2 py-1 shadow-sm
+                        className={`h-16 flex items-center justify-between rounded-lg px-2 shadow-sm
                           ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
                       >
                         {/* Avatar + Name/Role */}
@@ -608,22 +608,25 @@ export default function ScrumPointingApp() {
                               <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
                             )}
                           </div>
-                          <div className="flex flex-col leading-tight">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                          <div className="flex flex-col leading-tight max-w-[60%]">
+                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
                               {p}
                             </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                               {roleName}
                             </div>
                           </div>
                         </div>
-                        {/* Online Status + Mood + Device */}
+
+                        {/* Status / Mood / Device */}
                         <div className="flex flex-col items-end text-[10px] space-y-0.5">
                           <div className="text-green-600 dark:text-green-400 font-medium">
                             🟢 Online
                           </div>
                           {mood && (
-                            <div className="text-gray-500 dark:text-gray-400">{mood}</div>
+                            <div className="text-gray-500 dark:text-gray-400 truncate">
+                              {mood}
+                            </div>
                           )}
                           {deviceType === 'mobile' ? (
                             <span className="text-xs">📱</span>
@@ -658,13 +661,13 @@ export default function ScrumPointingApp() {
                     {showOffline && (
                       <div className="mt-2 grid grid-cols-1 gap-1 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar py-1">
                         {offlineParticipants.map((p) => {
-                          const roleName = participantRoles[p];
-                          const mood = participantMoods[p];
+                          const roleName   = participantRoles[p];
+                          const mood       = participantMoods[p];
                           const deviceType = devices[p];
                           return (
                             <div
                               key={p}
-                              className={`flex items-center justify-between rounded-lg px-2 py-1 shadow-sm
+                              className={`h-16 flex items-center justify-between rounded-lg px-2 shadow-sm
                                 ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
                             >
                               <div className="flex items-center gap-2">
@@ -674,11 +677,11 @@ export default function ScrumPointingApp() {
                                     <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
                                   )}
                                 </div>
-                                <div className="flex flex-col leading-tight">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                                <div className="flex flex-col leading-tight max-w-[60%]">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
                                     {p}
                                   </div>
-                                  <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                  <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                                     {roleName}
                                   </div>
                                 </div>
@@ -688,7 +691,9 @@ export default function ScrumPointingApp() {
                                   🔴 Offline
                                 </div>
                                 {mood && (
-                                  <div className="text-gray-500 dark:text-gray-400">{mood}</div>
+                                  <div className="text-gray-500 dark:text-gray-400 truncate">
+                                    {mood}
+                                  </div>
                                 )}
                                 {deviceType === 'mobile' ? (
                                   <span className="text-xs">📱</span>
@@ -1046,7 +1051,7 @@ export default function ScrumPointingApp() {
                             className="flex justify-between items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border dark:border-gray-600 text-left px-4 py-2 mb-1 rounded"
                           >
                             <button
-                              className="flex-1 text-left text-gray-800 dark:text-gray-200"
+                              className="flex-1 text-left text-gray-800 dark:text-gray-200 truncate"
                               onClick={() => handleStartSession(title, index)}
                             >
                               ▶️ {title}
