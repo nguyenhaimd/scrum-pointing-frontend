@@ -576,9 +576,23 @@ export default function ScrumPointingApp() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ─── Sidebar (Participants) ───────────────────────────────────────── */}
           <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
+            {/* Show toggle header on mobile (width < 1024) */}
+            {width < 1024 && (
+              <div className="flex justify-between items-center mb-2 px-2">
+                <span className="font-semibold">Users in this session</span>
+                <button
+                  className="text-sm text-blue-600 underline"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                >
+                  {showSidebar ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            )}
+
+            {/* Only render the full list if width>=1024 OR if showSidebar===true */}
             {(showSidebar || width >= 1024) && (
               <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]">
-                {/* Sticky Header */}
+                {/* Sticky Header inside large view */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
                   <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
                     👥 Users Online: {onlineParticipants.length} / {participants.length}
@@ -597,7 +611,7 @@ export default function ScrumPointingApp() {
                     return (
                       <div
                         key={p}
-                        className={`h-16 flex items-center justify-between rounded-lg px-2 shadow-sm
+                        className={`h-12 flex items-center justify-between rounded-lg px-2 shadow-sm
                           ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
                       >
                         {/* Avatar + Name/Role */}
@@ -608,7 +622,7 @@ export default function ScrumPointingApp() {
                               <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
                             )}
                           </div>
-                          <div className="flex flex-col leading-tight max-w-[60%]">
+                          <div className="flex flex-col leading-tight max-w-[50%]">
                             <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
                               {p}
                             </div>
@@ -667,7 +681,7 @@ export default function ScrumPointingApp() {
                           return (
                             <div
                               key={p}
-                              className={`h-16 flex items-center justify-between rounded-lg px-2 shadow-sm
+                              className={`h-12 flex items-center justify-between rounded-lg px-2 shadow-sm
                                 ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
                             >
                               <div className="flex items-center gap-2">
@@ -677,7 +691,7 @@ export default function ScrumPointingApp() {
                                     <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
                                   )}
                                 </div>
-                                <div className="flex flex-col leading-tight max-w-[60%]">
+                                <div className="flex flex-col leading-tight max-w-[50%]">
                                   <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
                                     {p}
                                   </div>
