@@ -1337,7 +1337,8 @@ export default function ScrumPointingApp() {
                       <li>✅ Team chat + typing indicators</li>
                       <li>✅ Responsive design for mobile & desktop</li>
                       <li>✅ Avatar & emoji personalization</li>
-                      <li>✅ Seamlessly rejoin when session disconnect</li>
+                        <li>✅ Seamlessly rejoin when session disconnect</li>
+                        <li>✅ Easter eggs and more React UI goodness</li>
                     </ul>
                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                       Built with 💙 by <strong>HighWind</strong>
