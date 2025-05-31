@@ -79,6 +79,9 @@ export default function ScrumPointingApp() {
   const [currentUserInfo, setCurrentUserInfo] = useState({});
   const [showAbout, setShowAbout] = useState(false);
 
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(false);
+
   // Offline section state
   const [showOffline, setShowOffline] = useState(false);
 
@@ -284,7 +287,7 @@ export default function ScrumPointingApp() {
     };
   }, []);
 
-  // ─── SCROLL CHAT ON NEW MESSAGES ─────────────────────────────────────────────────
+  // ─── SCROLL CHAT ON NEW MESSAGES ───────────────────────────────────────────────
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -445,672 +448,676 @@ export default function ScrumPointingApp() {
 
   // ─── RETURN JSX ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-4 font-sans text-gray-800 relative">
-      <Toaster position="top-right" reverseOrder={false} />
+    // Toggle dark mode on root div with `dark` class
+    <div className={`${darkMode ? 'dark' : ''}`}>
+      <div className="min-h-screen bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 from-sky-100 to-blue-200 p-4 font-sans text-gray-800 dark:text-gray-100 relative">
+        <Toaster position="top-right" reverseOrder={false} />
 
-      {/* ─── Offline Modal ───────────────────────────────────────────────── */}
-      {showOfflineModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-11/12 max-w-md space-y-4">
-            <h3 className="text-xl font-bold text-red-600">⚠️ Some developers are offline</h3>
-            <p className="text-sm text-gray-700">
-              The following {offlineList.length > 1 ? 'developers are' : 'developer is'} disconnected:
-            </p>
-            <ul className="list-disc list-inside text-sm text-gray-800 mb-4">
-              {offlineList.map((name) => (
-                <li key={name}>{name}</li>
-              ))}
-            </ul>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={cancelStart}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmStartAnyway}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-              >
-                Start Anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Reconnect Modal ─────────────────────────────────────────────────── */}
-      {hasJoined && showReconnectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
-            <h2 className="text-lg font-semibold mb-3">You’ve been disconnected</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Tap below to rejoin the session once internet is restored.
-            </p>
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              onClick={() => {
-                const rejoinData = {
-                  nickname,
-                  room,
-                  role,
-                  avatar: selectedAvatar,
-                  emoji: myMood,
-                  device: getDeviceType(),
-                };
-                console.log('📱 Device Type Detected (Rejoin):', rejoinData.device);
-                socket.emit('join', rejoinData);
-                setShowReconnectModal(false);
-                toast.success('🔄 Attempting to reconnect...');
-              }}
-            >
-              Rejoin Now
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Offline Banner (Sticky) ───────────────────────────────────────────── */}
-      {hasJoined && connectionStatus === 'disconnected' && (
-        <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
-          ⚠️ You’re offline. Trying to reconnect...
-        </div>
-      )}
-
-      {/* ─── Floating Emoji Reactions ────────────────────────────────────────────── */}
-      <div className="fixed inset-0 z-50 pointer-events-none">
-        {reactions.map((r) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: 1,
-              x: `${r.x}%`,
-              y: `-${r.y}vh`,
-              scale: r.scale,
-              transition: { duration: 1.5, ease: 'easeOut' },
-            }}
-            exit={{ opacity: 0 }}
-            className="absolute text-center"
-            style={{ left: `${r.x}%`, top: `${r.y}%` }}
+        {/* ─── Top Bar: Dark Mode Toggle + User Info ─────────────────────────── */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="text-xl bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 hover:bg-gray-300 p-2 rounded-full transition"
+            title="Toggle Dark Mode"
           >
-            <div className="text-4xl">{r.emoji}</div>
-            <div className="text-xs text-gray-600">{r.sender}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* ─── Header (User Info + Controls) ─────────────────────────────────────── */}
-      {hasJoined && (
-        <div className="w-full md:w-auto md:absolute md:top-2 md:right-4 z-30 bg-white px-4 py-2 rounded shadow text-sm flex items-center justify-between space-x-4">
-          {/* User Info */}
-          <div className="flex items-center space-x-2">
-            <div className="text-xs text-gray-500">You are logged in as:</div>
-            <div className="text-md flex items-center space-x-1">
+            {darkMode ? '☀️' : '☾'}
+          </button>
+          {hasJoined && (
+            <div className="flex items-center space-x-2">
+              <span>You are:</span>
               <span className="text-2xl">{currentUserInfo.avatar}</span>
               <span className="font-bold">{currentUserInfo.nickname}</span>
-              <span className="text-gray-600">({currentUserInfo.role})</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {/* Only Scrum Master: End Pointing Session */}
-            {isScrumMaster && (
-              <button
-                className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap"
-                onClick={() => socket.emit('endPointingSession')}
-              >
-                End Pointing Session
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ─── Mood & Reactions ────────────────────────────────────────────────────── */}
-      {hasJoined && (
-        <>
-          <div className="text-sm text-center font-medium mb-1 text-gray-700 mt-2">
-            Select Your Current Mood:
-          </div>
-          <div className="flex justify-center gap-2 mb-2 flex-wrap">
-            {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
-              <button
-                key={emoji}
-                onClick={() => updateMood(emoji)}
-                className={`text-2xl px-2 py-1 rounded-full ${
-                  myMood === emoji ? 'bg-blue-100 border border-blue-500' : 'hover:bg-gray-100'
-                }`}
-                title={label}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {hasJoined && (
-        <>
-          <div className="text-sm text-center font-medium mt-4 mb-1 text-gray-700">
-            Send a Quick Emoji Reaction:
-          </div>
-          <div className="flex flex-wrap justify-center gap-3 my-2">
-            {REACTION_EMOJIS.map((emoji, index) => (
-              <button
-                key={index}
-                className="text-2xl hover:scale-125 transition"
-                onClick={() => sendReaction(emoji)}
-                title={`React with ${emoji}`}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ─── Timer ───────────────────────────────────────────────────────────────── */}
-      {hasJoined && sessionActive && (
-        <div className="text-sm text-center mb-3 text-blue-700 font-medium">
-          ⏱️ Current Story Time: {formatTime(elapsedSeconds)}
-        </div>
-      )}
-
-      {/* ─── MAIN LAYOUT ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* ─── Sidebar (Participants) ───────────────────────────────────────── */}
-        <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
-          {(showSidebar || width >= 1024) && (
-            <div className="bg-white border rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]">
-              {/* Sticky Header */}
-              <div className="sticky top-0 bg-white z-10 pb-2 pt-1">
-                <div className="text-xs font-semibold text-gray-700 border-b pb-1">
-                  👥 Users Online: {onlineParticipants.length} / {participants.length}
-                </div>
-                <div className="mb-3 text-sm text-center text-blue-700 font-medium">
-                  ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
-                </div>
-              </div>
-
-              {/* Online Participants (2-column grid on lg) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1 overflow-y-auto pr-2 custom-scrollbar py-1">
-                {onlineParticipants.map((p) => {
-                  const role = participantRoles[p];
-                  const mood = participantMoods[p];
-                  const deviceType = devices[p];
-                  return (
-                    <div
-                      key={p}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm
-                        ${deviceType === 'mobile' ? 'bg-yellow-50' : 'bg-gray-50'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                          {deviceType === 'mobile' && (
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
-                          )}
-                        </div>
-                        <div className="text-sm leading-tight">
-                          <div className="font-semibold text-gray-800">{p}</div>
-                          <div className="text-xs text-gray-500">{role}</div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end text-xs space-y-1">
-                        <div className="text-green-600 font-medium">🟢 Online</div>
-                        {mood && <div className="text-gray-500">{mood}</div>}
-                        {deviceType === 'mobile' ? (
-                          <span className="text-sm">📱</span>
-                        ) : (
-                          <span className="text-sm">💻</span>
-                        )}
-                        {isScrumMaster && (
-                          <button
-                            className="text-red-500 hover:underline text-xs"
-                            onClick={() => socket.emit('forceRemoveUser', p)}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Collapsible Offline Section */}
-              {offlineParticipants.length > 0 && (
-                <div className="mt-4">
-                  <button
-                    className="w-full flex justify-between items-center text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded"
-                    onClick={() => setShowOffline(!showOffline)}
-                  >
-                    <span>🔴 Offline ({offlineParticipants.length})</span>
-                    <span>{showOffline ? '▲' : '▼'}</span>
-                  </button>
-
-                  {showOffline && (
-                    <div className="mt-2 space-y-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
-                      {offlineParticipants.map((p) => {
-                        const role = participantRoles[p];
-                        const mood = participantMoods[p];
-                        const deviceType = devices[p];
-                        return (
-                          <div
-                            key={p}
-                            className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm
-                              ${deviceType === 'mobile' ? 'bg-yellow-50' : 'bg-gray-50'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                                {deviceType === 'mobile' && (
-                                  <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
-                                )}
-                              </div>
-                              <div className="text-sm leading-tight">
-                                <div className="font-semibold text-gray-800">{p}</div>
-                                <div className="text-xs text-gray-500">{role}</div>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end text-xs space-y-1">
-                              <div className="text-red-500 font-medium">🔴 Offline</div>
-                              {mood && <div className="text-gray-500">{mood}</div>}
-                              {deviceType === 'mobile' ? (
-                                <span className="text-sm">📱</span>
-                              ) : (
-                                <span className="text-sm">💻</span>
-                              )}
-                              {isScrumMaster && (
-                                <button
-                                  className="text-red-500 hover:underline text-xs"
-                                  onClick={() => socket.emit('forceRemoveUser', p)}
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+              <span>({currentUserInfo.role})</span>
+              {isScrumMaster && (
+                <button
+                  className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap ml-4"
+                  onClick={() => socket.emit('endPointingSession')}
+                >
+                  End Session
+                </button>
               )}
             </div>
           )}
         </div>
 
-        {/* ─── Main Voting & Chat Area ───────────────────────────────────────── */}
-        <div className="flex-1">
-          {!hasJoined ? (
-            <div className="max-w-md mx-auto text-center">
-              <h1 className="text-2xl font-bold mb-4 text-blue-700">Join the Pointing Session</h1>
-              {error && <p className="text-red-500 mb-2">{error}</p>}
-              <input
-                className="p-2 border rounded w-full mb-2"
-                placeholder="Team Name"
-                value={room}
-                onChange={(e) => setRoom(e.target.value)}
-              />
-              <input
-                className="p-2 border rounded w-full mb-2"
-                placeholder="Nickname"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-              />
-              <select
-                className="p-2 border rounded w-full mb-2"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                {ROLE_OPTIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
+        {/* ─── Offline Reconnect / Banners ─────────────────────────────────────── */}
+        {showOfflineModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-11/12 max-w-md space-y-4">
+              <h3 className="text-xl font-bold text-red-600 dark:text-red-400">
+                ⚠️ Some developers are offline
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                The following {offlineList.length > 1 ? 'developers are' : 'developer is'} disconnected:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-800 dark:text-gray-200 mb-4">
+                {offlineList.map((name) => (
+                  <li key={name}>{name}</li>
                 ))}
-              </select>
-              <select
-                className="p-2 border rounded w-full mb-2 text-2xl"
-                value={selectedAvatar}
-                onChange={(e) => setSelectedAvatar(e.target.value)}
-              >
-                {AVATAR_EMOJIS.map((emoji) => (
-                  <option key={emoji} value={emoji}>
-                    {emoji}
-                  </option>
-                ))}
-              </select>
-              <div className="text-4xl mt-2 text-center">Selected Avatar: {selectedAvatar}</div>
+              </ul>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={cancelStart}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStartAnyway}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                >
+                  Start Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasJoined && showReconnectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
+              <h2 className="text-lg font-semibold mb-3 dark:text-gray-100">You’ve been disconnected</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Tap below to rejoin the session once internet is restored.
+              </p>
               <button
-                className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition"
-                onClick={join}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                onClick={() => {
+                  const rejoinData = {
+                    nickname,
+                    room,
+                    role,
+                    avatar: selectedAvatar,
+                    emoji: myMood,
+                    device: getDeviceType(),
+                  };
+                  console.log('📱 Device Type Detected (Rejoin):', rejoinData.device);
+                  socket.emit('join', rejoinData);
+                  setShowReconnectModal(false);
+                  toast.success('🔄 Attempting to reconnect...');
+                }}
               >
-                Join
+                Rejoin Now
               </button>
             </div>
-          ) : (
-            <>
-              {sessionActive && (
-                <>
-                  <h2 className="text-xl font-bold mb-4 text-blue-800">
-                    Voting for: {storyTitle}
-                  </h2>
+          </div>
+        )}
 
-                  {(isScrumMaster || isObserver) && (
-                    <div className="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
-                      <p className="font-semibold mb-2">Voting Progress:</p>
-                      <progress
-                        className="w-full h-3 mb-2"
-                        value={votesCast}
-                        max={totalDevelopers}
-                      />
-                      <ul className="text-sm">
-                        {participants
-                          .filter((p) => participantRoles[p] === 'Developer')
-                          .map((p) => (
-                            <li key={p}>
-                              {participantAvatars[p] || '❓'} {p} —{' '}
-                              {votes[p] ? '✅ Voted' : '⏳ Waiting'}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
+        {hasJoined && connectionStatus === 'disconnected' && (
+          <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
+            ⚠️ You’re offline. Trying to reconnect...
+          </div>
+        )}
 
-                  {isObserver && (
-                    <div className="bg-yellow-50 border border-yellow-300 p-3 rounded mt-4 text-sm">
-                      👀 You are observing this session. You can’t vote but can watch
-                      everything.
-                    </div>
-                  )}
+        {/* ─── Floating Emoji Reactions ────────────────────────────────────────────── */}
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          {reactions.map((r) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                x: `${r.x}%`,
+                y: `-${r.y}vh`,
+                scale: r.scale,
+                transition: { duration: 1.5, ease: 'easeOut' },
+              }}
+              exit={{ opacity: 0 }}
+              className="absolute text-center"
+              style={{ left: `${r.x}%`, top: `${r.y}%` }}
+            >
+              <div className="text-4xl">{r.emoji}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
+            </motion.div>
+          ))}
+        </div>
 
-                  {isDeveloper && !votesRevealed && (
-                    <>
-                      <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
-                        {POINT_OPTIONS.map((pt) => (
-                          <button
-                            key={pt}
-                            className={`
-                              py-4 px-6 rounded-xl font-bold text-xl shadow transition
-                              ${
-                                vote === pt
-                                  ? 'bg-green-500 text-white border border-green-600'
-                                  : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
-                              }
-                            `}
-                            onClick={() => castVote(pt)}
-                          >
-                            {pt}
-                          </button>
-                        ))}
-                      </div>
-                      {vote && (
-                        <div className="bg-green-50 border border-green-400 text-green-700 rounded p-3 text-sm text-center shadow-sm mt-2">
-                          ✅ You can update your vote at any time until the Scrum Master reveals it.
-                        </div>
-                      )}
-                    </>
-                  )}
+        {/* ─── Layout: Sidebar + Main ───────────────────────────────────────────────── */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* ─── Sidebar (Participants) ───────────────────────────────────────── */}
+          <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
+            {(showSidebar || width >= 1024) && (
+              <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]">
+                {/* Sticky Header */}
+                <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
+                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
+                    👥 Users Online: {onlineParticipants.length} / {participants.length}
+                  </div>
+                  <div className="mb-3 text-sm text-center text-blue-700 dark:text-blue-300 font-medium">
+                    ⏱️ Elapsed Time: {formatTime(globalElapsedSeconds)}
+                  </div>
+                </div>
 
-                  {vote && (
-                    <p className="text-green-600 text-lg font-semibold mb-4">
-                      You voted: {vote}
-                    </p>
-                  )}
-
-                  {votesRevealed && (
-                    <>
-                      {showConfetti && <Confetti width={width} height={height} />}
-                      <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-2">Votes</h3>
-                        <ul className="text-left inline-block">
-                          {Object.entries(votes)
-                            .filter(
-                              ([user, pt]) =>
-                                participantRoles[user] === 'Developer' &&
-                                pt !== null &&
-                                pt !== undefined &&
-                                pt !== ''
-                            )
-                            .map(([user, pt]) => (
-                              <li key={user}>
-                                <strong>
-                                  {participantAvatars[user] || '❓'} {user}
-                                </strong>
-                                : {pt}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                      {consensusPoints.length > 0 && (
-                        <motion.p
-                          className="text-lg text-center mt-4 text-green-700 font-bold"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6 }}
-                        >
-                          📊 Consensus: {consensusPoints.join(', ')} point
-                          {consensusPoints.length > 1 ? 's' : ''}
-                        </motion.p>
-                      )}
-                    </>
-                  )}
-
-                  {isScrumMaster && (
-                    <div className="flex justify-center flex-wrap gap-4 mt-6">
-                      {!votesRevealed && (
-                        <button
-                          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                          onClick={revealVotes}
-                        >
-                          Reveal Votes
-                        </button>
-                      )}
-                      {votesRevealed && (
-                        <button
-                          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                          onClick={initiateRevote}
-                        >
-                          Revote
-                        </button>
-                      )}
-                      <button
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                        onClick={endSession}
+                {/* Online Participants (Single‐column compact cards) */}
+                <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto pr-2 custom-scrollbar py-1">
+                  {onlineParticipants.map((p) => {
+                    const roleName = participantRoles[p];
+                    const mood = participantMoods[p];
+                    const deviceType = devices[p];
+                    return (
+                      <div
+                        key={p}
+                        className={`flex items-center justify-between rounded-lg px-2 py-1 shadow-sm
+                          ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
                       >
-                        Next Story/Defect
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ─── Chat Section ────────────────────────────────────────────────── */}
-              <div className="text-left text-sm mb-4">
-                <h3 className="font-semibold mb-1">Team Chat</h3>
-                <div
-                  ref={chatRef}
-                  className="h-32 lg:h-64 overflow-y-auto bg-gray-50 border rounded p-2"
-                >
-                  {chatMessages.map((msg, i) => {
-                    if ((!msg.text && !msg.type) || (!msg.text && msg.sender === 'System'))
-                      return null;
-
-                    if (msg.type === 'voteSummary' && isScrumMaster) {
-                      const { summary } = msg;
-                      return (
-                        <div
-                          key={i}
-                          className="border border-blue-300 rounded p-2 bg-blue-50 text-xs mt-2"
-                        >
-                          <div className="font-semibold flex justify-between items-center">
-                            📝 Summary for "{summary.story}"
-                            <button
-                              onClick={() => {
-                                setChatMessages((prev) =>
-                                  prev.map((m, idx) =>
-                                    idx === i
-                                      ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
-                                      : { ...m, summary: { ...m.summary, expand: false } }
-                                  )
-                                );
-                              }}
-                              className="text-blue-600 underline ml-2 text-xs"
-                            >
-                              {summary.expand ? 'Hide' : 'Show'}
-                            </button>
+                        {/* Avatar + Name/Role */}
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <span className="text-xl">{participantAvatars[p] || '❓'}</span>
+                            {deviceType === 'mobile' && (
+                              <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
+                            )}
                           </div>
-                          {summary.expand && (
-                            <div className="mt-1">
-                              <div className="text-green-700 mb-1">
-                                📊 Consensus: {summary.consensus.join(', ')}
-                              </div>
-                              <ul className="list-disc ml-4">
-                                {summary.votes
-                                  .filter((v) => v.point !== null && v.point !== undefined && v.point !== '')
-                                  .map((v, idx) => (
-                                    <li key={idx}>
-                                      {v.avatar} {v.name} — <strong>{v.point}</strong>
-                                    </li>
-                                  ))}
-                              </ul>
+                          <div className="flex flex-col leading-tight">
+                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                              {p}
                             </div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                              {roleName}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Online Status + Mood + Device */}
+                        <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                          <div className="text-green-600 dark:text-green-400 font-medium">
+                            🟢 Online
+                          </div>
+                          {mood && (
+                            <div className="text-gray-500 dark:text-gray-400">{mood}</div>
+                          )}
+                          {deviceType === 'mobile' ? (
+                            <span className="text-xs">📱</span>
+                          ) : (
+                            <span className="text-xs">💻</span>
+                          )}
+                          {isScrumMaster && (
+                            <button
+                              className="text-red-500 hover:underline text-[8px]"
+                              onClick={() => socket.emit('forceRemoveUser', p)}
+                            >
+                              Remove
+                            </button>
                           )}
                         </div>
-                      );
-                    }
-
-                    return (
-                      <div key={i} className="text-sm">
-                        <strong>{msg.sender}:</strong> {msg.text}
                       </div>
                     );
                   })}
                 </div>
-                <div className="h-5 mt-1">
-                  {typingUsers.length > 0 && (
-                    <p className="text-xs text-gray-500 italic">
-                      {typingUsers.join(', ')}{' '}
-                      {typingUsers.length === 1 ? 'is' : 'are'} typing...
-                    </p>
-                  )}
-                </div>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    className="flex-1 border p-1 rounded"
-                    placeholder="Type a message..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') sendChatMessage();
-                      else handleTyping();
-                    }}
-                  />
-                  <button
-                    className="px-3 bg-blue-500 text-white rounded"
-                    onClick={sendChatMessage}
-                  >
-                    Send
-                  </button>
-                </div>
+
+                {/* Collapsible Offline Section */}
+                {offlineParticipants.length > 0 && (
+                  <div className="mt-4">
+                    <button
+                      className="w-full flex justify-between items-center text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
+                      onClick={() => setShowOffline(!showOffline)}
+                    >
+                      <span>🔴 Offline ({offlineParticipants.length})</span>
+                      <span>{showOffline ? '▲' : '▼'}</span>
+                    </button>
+
+                    {showOffline && (
+                      <div className="mt-2 grid grid-cols-1 gap-1 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar py-1">
+                        {offlineParticipants.map((p) => {
+                          const roleName = participantRoles[p];
+                          const mood = participantMoods[p];
+                          const deviceType = devices[p];
+                          return (
+                            <div
+                              key={p}
+                              className={`flex items-center justify-between rounded-lg px-2 py-1 shadow-sm
+                                ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <span className="text-xl">{participantAvatars[p] || '❓'}</span>
+                                  {deviceType === 'mobile' && (
+                                    <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
+                                  )}
+                                </div>
+                                <div className="flex flex-col leading-tight">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                                    {p}
+                                  </div>
+                                  <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    {roleName}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                                <div className="text-red-500 dark:text-red-400 font-medium">
+                                  🔴 Offline
+                                </div>
+                                {mood && (
+                                  <div className="text-gray-500 dark:text-gray-400">{mood}</div>
+                                )}
+                                {deviceType === 'mobile' ? (
+                                  <span className="text-xs">📱</span>
+                                ) : (
+                                  <span className="text-xs">💻</span>
+                                )}
+                                {isScrumMaster && (
+                                  <button
+                                    className="text-red-500 hover:underline text-[8px]"
+                                    onClick={() => socket.emit('forceRemoveUser', p)}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+            )}
+          </div>
 
-              {/* ─── Scrum Master Add Story ───────────────────────────────────────────── */}
-              {!sessionActive && isScrumMaster && (
-                <div className="mb-6">
-                  <input
-                    className="p-2 border rounded w-full mb-2"
-                    placeholder="Add story title"
-                    value={storyTitle}
-                    onChange={(e) => setStoryTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleStartSession(storyTitle, 0);
-                    }}
-                  />
-                  <button
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    onClick={() => handleStartSession(storyTitle, 0)}
-                  >
-                    Add Story
-                  </button>
-                  {storyQueue.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Queued Stories:</h3>
-                      {storyQueue.map((title, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center bg-gray-100 hover:bg-gray-200 border text-left px-4 py-2 mb-1 rounded"
-                        >
-                          <button
-                            className="flex-1 text-left"
-                            onClick={() => handleStartSession(title, index)}
-                          >
-                            ▶️ {title}
-                          </button>
-                          <button
-                            className="text-red-600 text-sm ml-2"
-                            onClick={() =>
-                              setStoryQueue(storyQueue.filter((_, i) => i !== index))
-                            }
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!sessionActive && !isScrumMaster && (
-                <p className="text-gray-500 mt-4">Waiting for Scrum Master to start the session...</p>
-              )}
-
-              {/* ─── About Modal ───────────────────────────────────────────────────────── */}
-              <div className="text-center mt-6">
-                <button
-                  className="text-xs text-gray-500 underline"
-                  onClick={() => {
-                    const modal = document.getElementById('about-modal');
-                    if (modal) modal.showModal();
-                  }}
+          {/* ─── Main Voting & Chat Area ───────────────────────────────────────── */}
+          <div className="flex-1">
+            {!hasJoined ? (
+              <div className="max-w-md mx-auto text-center">
+                <h1 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-300">
+                  Join the Pointing Session
+                </h1>
+                {error && <p className="text-red-500 mb-2">{error}</p>}
+                <input
+                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  placeholder="Team Name"
+                  value={room}
+                  onChange={(e) => setRoom(e.target.value)}
+                />
+                <input
+                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  placeholder="Nickname"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                />
+                <select
+                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
                 >
-                  About
+                  {ROLE_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="p-2 border rounded w-full mb-2 text-2xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  value={selectedAvatar}
+                  onChange={(e) => setSelectedAvatar(e.target.value)}
+                >
+                  {AVATAR_EMOJIS.map((emoji) => (
+                    <option key={emoji} value={emoji}>
+                      {emoji}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-4xl mt-2 text-center">{selectedAvatar}</div>
+                <button
+                  className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition"
+                  onClick={join}
+                >
+                  Join
                 </button>
               </div>
+            ) : (
+              <>
+                {sessionActive && (
+                  <>
+                    <h2 className="text-xl font-bold mb-4 text-blue-800 dark:text-blue-400">
+                      Voting for: {storyTitle}
+                    </h2>
 
-              <dialog
-                id="about-modal"
-                className="rounded-xl p-6 max-w-lg w-full shadow-xl border bg-white text-sm text-left"
-              >
-                <form method="dialog" className="space-y-3">
-                  <h2 className="text-lg font-semibold text-blue-700">About This App</h2>
-                  <ul className="list-disc list-inside text-gray-700">
-                    <li>✅ Real-time multiplayer pointing</li>
-                    <li>✅ Roles: Developer, Observer, Scrum Master, Product Owner</li>
-                    <li>✅ Live emoji reactions & mood status</li>
-                    <li>✅ Confetti & animated consensus</li>
-                    <li>✅ Revoting support</li>
-                    <li>✅ Session timer & story timer</li>
-                    <li>✅ Team chat + typing indicators</li>
-                    <li>✅ Responsive design for mobile & desktop</li>
-                    <li>✅ Avatar & emoji personalization</li>
-                    <li>✅ Seamlessly rejoin when session disconnect</li>
-                  </ul>
-                  <p className="mt-3 text-xs text-gray-500">
-                    Built with 💙 by <strong>HighWind</strong>
-                  </p>
-                  <div className="text-right mt-4">
-                    <button className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">
-                      Close
+                    {(isScrumMaster || isObserver) && (
+                      <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 p-3 rounded">
+                        <p className="font-semibold mb-2">Voting Progress:</p>
+                        <progress
+                          className="w-full h-3 mb-2"
+                          value={votesCast}
+                          max={totalDevelopers}
+                        />
+                        <ul className="text-sm">
+                          {participants
+                            .filter((p) => participantRoles[p] === 'Developer')
+                            .map((p) => (
+                              <li key={p}>
+                                {participantAvatars[p] || '❓'} {p} —{' '}
+                                {votes[p] ? '✅ Voted' : '⏳ Waiting'}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {isObserver && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700 p-3 rounded mt-4 text-sm text-gray-800 dark:text-gray-200">
+                        👀 You are observing this session. You can’t vote but can watch
+                        everything.
+                      </div>
+                    )}
+
+                    {isDeveloper && !votesRevealed && (
+                      <>
+                        <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
+                          {POINT_OPTIONS.map((pt) => (
+                            <button
+                              key={pt}
+                              className={`
+                                py-4 px-6 rounded-xl font-bold text-xl shadow transition
+                                ${
+                                  vote === pt
+                                    ? 'bg-green-500 text-white border border-green-600'
+                                    : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-600'
+                                }
+                              `}
+                              onClick={() => castVote(pt)}
+                            >
+                              {pt}
+                            </button>
+                          ))}
+                        </div>
+                        {vote && (
+                          <div className="bg-green-50 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded p-3 text-sm text-center shadow-sm mt-2">
+                            ✅ You can update your vote at any time until the Scrum Master
+                            reveals it.
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {vote && (
+                      <p className="text-green-600 dark:text-green-400 text-lg font-semibold mb-4">
+                        You voted: {vote}
+                      </p>
+                    )}
+
+                    {votesRevealed && (
+                      <>
+                        {showConfetti && <Confetti width={width} height={height} />}
+                        <div className="mt-6 bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                          <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                            Votes
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {Object.entries(votes)
+                              .filter(
+                                ([user, pt]) =>
+                                  participantRoles[user] === 'Developer' &&
+                                  pt !== null &&
+                                  pt !== undefined &&
+                                  pt !== ''
+                              )
+                              .map(([user, pt]) => (
+                                <motion.div
+                                  key={user}
+                                  className="bg-white dark:bg-gray-700 rounded-lg p-3 flex items-center gap-2 shadow"
+                                  initial={{ rotateY: -90 }}
+                                  animate={{ rotateY: 0 }}
+                                  transition={{ duration: 0.4 }}
+                                  style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+                                >
+                                  <span className="text-2xl">{participantAvatars[user] || '❓'}</span>
+                                  <div>
+                                    <div className="font-semibold text-gray-800 dark:text-gray-100">
+                                      {user}
+                                    </div>
+                                    <div className="text-xl text-blue-600 dark:text-blue-300">
+                                      {pt}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                          </div>
+                        </div>
+                        {consensusPoints.length > 0 && (
+                          <motion.p
+                            className="text-lg text-center mt-4 text-green-700 dark:text-green-300 font-bold"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                          >
+                            📊 Consensus: {consensusPoints.join(', ')} point
+                            {consensusPoints.length > 1 ? 's' : ''}
+                          </motion.p>
+                        )}
+                      </>
+                    )}
+
+                    {isScrumMaster && (
+                      <div className="flex justify-center flex-wrap gap-4 mt-6">
+                        {!votesRevealed && (
+                          <button
+                            className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
+                            onClick={revealVotes}
+                          >
+                            Reveal Votes
+                          </button>
+                        )}
+                        {votesRevealed && (
+                          <button
+                            className="bg-yellow-500 dark:bg-yellow-700 text-white px-4 py-2 rounded hover:bg-yellow-600 dark:hover:bg-yellow-600"
+                            onClick={initiateRevote}
+                          >
+                            Revote
+                          </button>
+                        )}
+                        <button
+                          className="bg-red-600 dark:bg-red-700 text-white px-4 py-2 rounded hover:bg-red-700 dark:hover:bg-red-600"
+                          onClick={endSession}
+                        >
+                          Next Story/Defect
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ─── Chat Section ────────────────────────────────────────────────── */}
+                <div className="text-left text-sm mb-4">
+                  <h3 className="font-semibold mb-1 text-gray-800 dark:text-gray-200">
+                    Team Chat
+                  </h3>
+                  <div
+                    ref={chatRef}
+                    className="h-32 lg:h-64 overflow-y-auto bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded p-2"
+                  >
+                    {chatMessages.map((msg, i) => {
+                      if ((!msg.text && !msg.type) || (!msg.text && msg.sender === 'System'))
+                        return null;
+
+                      if (msg.type === 'voteSummary' && isScrumMaster) {
+                        const { summary } = msg;
+                        return (
+                          <div
+                            key={i}
+                            className="border dark:border-gray-600 rounded p-2 bg-blue-50 dark:bg-blue-900 text-xs mt-2"
+                          >
+                            <div className="font-semibold flex justify-between items-center text-gray-800 dark:text-gray-100">
+                              📝 Summary for "{summary.story}"
+                              <button
+                                onClick={() => {
+                                  setChatMessages((prev) =>
+                                    prev.map((m, idx) =>
+                                      idx === i
+                                        ? { ...m, summary: { ...m.summary, expand: !m.summary.expand } }
+                                        : { ...m, summary: { ...m.summary, expand: false } }
+                                    )
+                                  );
+                                }}
+                                className="text-blue-600 dark:text-blue-400 underline ml-2 text-xs"
+                              >
+                                {summary.expand ? 'Hide' : 'Show'}
+                              </button>
+                            </div>
+                            {summary.expand && (
+                              <div className="mt-1">
+                                <div className="text-green-700 dark:text-green-300 mb-1">
+                                  📊 Consensus: {summary.consensus.join(', ')}
+                                </div>
+                                <ul className="list-disc ml-4 text-gray-800 dark:text-gray-200">
+                                  {summary.votes
+                                    .filter(
+                                      (v) =>
+                                        v.point !== null &&
+                                        v.point !== undefined &&
+                                        v.point !== ''
+                                    )
+                                    .map((v, idx) => (
+                                      <li key={idx}>
+                                        {v.avatar} {v.name} — <strong>{v.point}</strong>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={i}
+                          className="text-sm text-gray-800 dark:text-gray-200"
+                        >
+                          <strong>{msg.sender}:</strong> {msg.text}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="h-5 mt-1">
+                    {typingUsers.length > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                        {typingUsers.join(', ')}{' '}
+                        {typingUsers.length === 1 ? 'is' : 'are'} typing...
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className="flex-1 border p-1 rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                      placeholder="Type a message..."
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') sendChatMessage();
+                        else handleTyping();
+                      }}
+                    />
+                    <button
+                      className="px-3 bg-blue-500 dark:bg-blue-700 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-600"
+                      onClick={sendChatMessage}
+                    >
+                      Send
                     </button>
                   </div>
-                </form>
-              </dialog>
-            </>
-          )}
+                </div>
+
+                {/* ─── Scrum Master Add Story ───────────────────────────────────────────── */}
+                {!sessionActive && isScrumMaster && (
+                  <div className="mb-6">
+                    <input
+                      className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                      placeholder="Add story title"
+                      value={storyTitle}
+                      onChange={(e) => setStoryTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleStartSession(storyTitle, 0);
+                      }}
+                    />
+                    <button
+                      className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-600"
+                      onClick={() => handleStartSession(storyTitle, 0)}
+                    >
+                      Add Story
+                    </button>
+                    {storyQueue.length > 0 && (
+                      <div className="mt-4">
+                        <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                          Queued Stories:
+                        </h3>
+                        {storyQueue.map((title, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border dark:border-gray-600 text-left px-4 py-2 mb-1 rounded"
+                          >
+                            <button
+                              className="flex-1 text-left text-gray-800 dark:text-gray-200"
+                              onClick={() => handleStartSession(title, index)}
+                            >
+                              ▶️ {title}
+                            </button>
+                            <button
+                              className="text-red-600 dark:text-red-400 text-sm ml-2 hover:text-red-800 dark:hover:text-red-600"
+                              onClick={() =>
+                                setStoryQueue(storyQueue.filter((_, i) => i !== index))
+                              }
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!sessionActive && !isScrumMaster && (
+                  <p className="text-gray-500 dark:text-gray-400 mt-4">
+                    Waiting for Scrum Master to start the session...
+                  </p>
+                )}
+
+                {/* ─── About Modal ───────────────────────────────────────────────────────── */}
+                <div className="text-center mt-6">
+                  <button
+                    className="text-xs text-gray-500 dark:text-gray-400 underline"
+                    onClick={() => {
+                      const modal = document.getElementById('about-modal');
+                      if (modal) modal.showModal();
+                    }}
+                  >
+                    About
+                  </button>
+                </div>
+
+                <dialog
+                  id="about-modal"
+                  className="rounded-xl p-6 max-w-lg w-full shadow-xl border dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-left"
+                >
+                  <form method="dialog" className="space-y-3">
+                    <h2 className="text-lg font-semibold text-blue-700 dark:text-blue-300">
+                      About This App
+                    </h2>
+                    <ul className="list-disc list-inside text-gray-700 dark:text-gray-300">
+                      <li>✅ Real-time multiplayer pointing</li>
+                      <li>✅ Roles: Developer, Observer, Scrum Master, Product Owner</li>
+                      <li>✅ Live emoji reactions & mood status</li>
+                      <li>✅ Confetti & animated consensus</li>
+                      <li>✅ Revoting support</li>
+                      <li>✅ Session timer & story timer</li>
+                      <li>✅ Team chat + typing indicators</li>
+                      <li>✅ Responsive design for mobile & desktop</li>
+                      <li>✅ Avatar & emoji personalization</li>
+                      <li>✅ Seamlessly rejoin when session disconnect</li>
+                    </ul>
+                    <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                      Built with 💙 by <strong>HighWind</strong>
+                    </p>
+                    <div className="text-right mt-4">
+                      <button className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-600">
+                        Close
+                      </button>
+                    </div>
+                  </form>
+                </dialog>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
