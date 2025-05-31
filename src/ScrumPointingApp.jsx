@@ -761,313 +761,233 @@ export default function ScrumPointingApp() {
           </div>
         )}
 
-        {/* ─── COLLAPSIBLE “REACTIONS & MOOD” PANEL (only AFTER join) ───────────────── */}
-        {hasJoined && (
-          <div className="mb-4">
-            <button
-              className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-              onClick={() => setShowReactionsPanel(prev => !prev)}
-            >
-              <span className="font-semibold">Reactions & Mood</span>
-              <span>{showReactionsPanel ? '▲' : '▼'}</span>
-            </button>
+        {/* ─── POLISHED JOIN SCREEN ───────────────────────────────────────────────────── */}
+        {!hasJoined ? (
+          <div className="flex items-center justify-center h-full">
+            {/* Card Container */}
+            <div className="w-full max-w-md bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-2xl shadow-lg p-8 space-y-6">
+              {/* Title */}
+              <h1 className="text-3xl font-extrabold text-center text-blue-700 dark:text-blue-400 mb-4">
+                Join the Pointing Session
+              </h1>
 
-            {showReactionsPanel && (
-              <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-b-lg p-4 space-y-4">
-                {/* ── Mood Selector ─────────────────────────────────────────── */}
+              {/* Error Message */}
+              {error && (
+                <p className="text-center text-red-500 bg-red-50 dark:bg-red-800 dark:text-red-300 px-4 py-2 rounded">
+                  {error}
+                </p>
+              )}
+
+              {/* Inputs */}
+              <div className="space-y-4">
+                {/* Team Name */}
                 <div>
-                  <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    Select Your Current Mood:
-                  </div>
-                  <div className="flex justify-center gap-3 flex-wrap">
-                    {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
-                      <button
-                        key={emoji}
-                        onClick={() => updateMood(emoji)}
-                        className={`text-2xl p-2 rounded-full transition ${
-                          myMood === emoji
-                            ? 'bg-blue-200 dark:bg-blue-700 border-2 border-blue-500 dark:border-blue-300'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                        title={label}
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Team Name
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-600 transition"
+                    placeholder="e.g. AFOSR Pega Developers"
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                  />
+                </div>
+
+                {/* Nickname */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Nickname
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-600 transition"
+                    placeholder="What should we call you?"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                  />
+                </div>
+
+                {/* Role Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Role
+                  </label>
+                  <div className="relative">
+                    <select
+                      className="w-full appearance-none px-4 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-600 transition"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                    >
+                      {ROLE_OPTIONS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                      <svg
+                        className="h-5 w-5 text-gray-400 dark:text-gray-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
                       >
-                        {emoji}
-                      </button>
-                    ))}
+                        <path
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                {/* ── Emoji Reaction Buttons ───────────────────────────────── */}
+                {/* Avatar Selector */}
                 <div>
-                  <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    Send a Quick Emoji Reaction:
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Pick an Avatar
+                  </label>
+                  <div className="relative">
+                    <select
+                      className="w-full appearance-none px-4 py-2 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-600 transition"
+                      value={selectedAvatar}
+                      onChange={(e) => setSelectedAvatar(e.target.value)}
+                    >
+                      {AVATAR_EMOJIS.map((emoji) => (
+                        <option key={emoji} value={emoji}>
+                          {emoji}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <span className="text-gray-400 dark:text-gray-500">😃</span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {REACTION_EMOJIS.map((emoji, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => sendReaction(emoji)}
-                        className="text-2xl hover:scale-125 transition"
-                        title={`React with ${emoji}`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    (This will appear next to your name in‐session)
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* ─── OFFLINE / RECONNECT BANNERS ─────────────────────────────────────── */}
-        {showOfflineModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-11/12 max-w-md space-y-4">
-              <h3 className="text-xl font-bold text-red-600 dark:text-red-400">
-                ⚠️ Some developers are offline
-              </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                The following {offlineList.length > 1 ? 'developers are' : 'developer is'} disconnected:
-              </p>
-              <ul className="list-disc list-inside text-sm text-gray-800 dark:text-gray-200 mb-4">
-                {offlineList.map(name => (
-                  <li key={name}>{name}</li>
-                ))}
-              </ul>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={cancelStart}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmStartAnyway}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                >
-                  Start Anyway
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {hasJoined && showReconnectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
-              <h2 className="text-lg font-semibold mb-3 dark:text-gray-100">
-                You’ve been disconnected
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Tap below to rejoin once internet is restored.
-              </p>
+              {/* Join Button */}
               <button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={() => {
-                  socket.emit('join', {
-                    nickname,
-                    room,
-                    role,
-                    avatar: selectedAvatar,
-                    emoji: myMood,
-                    device: getDeviceType(),
-                  });
-                  setShowReconnectModal(false);
-                  toast.success('🔄 Reconnecting...');
-                }}
+                id="tour-join-btn"
+                className="w-full bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition"
+                onClick={join}
               >
-                Rejoin Now
+                Join Session
               </button>
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* ─── After Joining: Main Application Content ─────────────────────────── */}
 
-        {hasJoined && connectionStatus === 'disconnected' && (
-          <div className="bg-red-600 text-white py-2 text-center font-semibold sticky top-0 z-50">
-            ⚠️ You’re offline. Trying to reconnect...
-          </div>
-        )}
-
-        {/* ─── Floating Emoji Reactions (Improved) ───────────────────────────────── */}
-        <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden">
-          {reactions.map(r => (
-            <motion.div
-              key={r.id}
-              initial={{ opacity: 0, scale: 0.6, y: 0 }}
-              animate={{
-                opacity: [0, 1, 0],
-                scale: [0.6, 1, 0.8],
-                y: [`${r.startY}%`, `${r.startY - 15}%`, `${r.startY - 30}%`],
-                transition: { times: [0, 0.2, 1], duration: 1.2, ease: 'easeOut' }
-              }}
-              className="absolute text-center"
-              style={{ left: `${r.x}%`, top: `${r.startY}%` }}
-            >
-              <div className="text-4xl">{r.emoji}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* ─── LAYOUT: Sidebar + Main ────────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* ─── Sidebar (Participants) ───────────────────────────────────────────── */}
-          <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
-            {/* Mobile collapse toggle */}
-            {width < 1024 && (
-              <div className="flex justify-between items-center mb-2 px-2">
-                <span className="font-semibold dark:text-gray-300">Users in session</span>
-                <button
-                  className="text-sm text-blue-600 dark:text-blue-300 underline"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  {showSidebar ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            )}
-
-            {(showSidebar || width >= 1024) && (
-              <div
-                id="tour-participants"
-                className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]"
-              >
-                {/* Sticky header */}
-                <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
-                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
-                    👥 Online: {Object.values(participantConnections).filter(Boolean).length} / {participants.length}
+            {/* ─── Sidebar + Main Layout ────────────────────────────────────────────── */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* ─── Sidebar (Participants) ─────────────────────────────────────────── */}
+              <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
+                {/* Mobile collapse toggle */}
+                {width < 1024 && (
+                  <div className="flex justify-between items-center mb-2 px-2">
+                    <span className="font-semibold dark:text-gray-300">Users in session</span>
+                    <button
+                      className="text-sm text-blue-600 dark:text-blue-300 underline"
+                      onClick={() => setShowSidebar(!showSidebar)}
+                    >
+                      {showSidebar ? 'Hide' : 'Show'}
+                    </button>
                   </div>
-                  <div className="mb-3 text-sm text-center text-blue-700 dark:text-blue-300 font-medium">
-                    ⏱️ Elapsed: {formatTime(globalElapsedSeconds)}
-                  </div>
-                </div>
+                )}
 
-                {/* All participants */}
-                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
-                  {participants.map(p => {
-                    const isConnected = participantConnections[p];
-                    const roleName    = participantRoles[p];
-                    const mood        = participantMoods[p];
-                    const deviceType  = devices[p];
-                    return (
-                      <div
-                        key={p}
-                        className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          {roleName === 'Scrum Master' ? (
-                            <motion.span
-                              className="text-2xl"
-                              animate={{ scale: [1, 1.1, 1] }}
-                              transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                            >
-                              {participantAvatars[p] || '❓'} 👑
-                            </motion.span>
-                          ) : (
-                            <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                          )}
-                          <div className="flex flex-col">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
-                              {p}
+                {(showSidebar || width >= 1024) && (
+                  <div
+                    id="tour-participants"
+                    className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]"
+                  >
+                    {/* Sticky header */}
+                    <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
+                      <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
+                        👥 Online: {Object.values(participantConnections).filter(Boolean).length} / {participants.length}
+                      </div>
+                      <div className="mb-3 text-sm text-center text-blue-700 dark:text-blue-300 font-medium">
+                        ⏱️ Elapsed: {formatTime(globalElapsedSeconds)}
+                      </div>
+                    </div>
+
+                    {/* All participants */}
+                    <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
+                      {participants.map(p => {
+                        const isConnected = participantConnections[p];
+                        const roleName    = participantRoles[p];
+                        const mood        = participantMoods[p];
+                        const deviceType  = devices[p];
+                        return (
+                          <div
+                            key={p}
+                            className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              {roleName === 'Scrum Master' ? (
+                                <motion.span
+                                  className="text-2xl"
+                                  animate={{ scale: [1, 1.1, 1] }}
+                                  transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                                >
+                                  {participantAvatars[p] || '❓'} 👑
+                                </motion.span>
+                              ) : (
+                                <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                              )}
+                              <div className="flex flex-col">
+                                <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                                  {p}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {roleName}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {roleName}
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className={isConnected
+                                ? 'text-green-600 dark:text-green-400 font-medium'
+                                : 'text-red-500 dark:text-red-400 font-medium'
+                              }>
+                                {isConnected ? '🟢 Online' : '🔴 Offline'}
+                              </span>
+                              {mood && (
+                                <span className="text-gray-500 dark:text-gray-400">{mood}</span>
+                              )}
+                              <span>{deviceType === 'mobile' ? '📱' : '💻'}</span>
+                              {isScrumMaster && !isConnected && (
+                                <button
+                                  className="text-red-500 dark:text-red-400 hover:underline text-xs"
+                                  onClick={() => socket.emit('forceRemoveUser', p)}
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={isConnected
-                            ? 'text-green-600 dark:text-green-400 font-medium'
-                            : 'text-red-500 dark:text-red-400 font-medium'
-                          }>
-                            {isConnected ? '🟢 Online' : '🔴 Offline'}
-                          </span>
-                          {mood && (
-                            <span className="text-gray-500 dark:text-gray-400">{mood}</span>
-                          )}
-                          <span>{deviceType === 'mobile' ? '📱' : '💻'}</span>
-                          {isScrumMaster && !isConnected && (
-                            <button
-                              className="text-red-500 dark:text-red-400 hover:underline text-xs"
-                              onClick={() => socket.emit('forceRemoveUser', p)}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
 
-                {/* Collapsible Offline Section */}
-                {participants.filter(p => !participantConnections[p]).length > 0 && (
-                  <OfflineSection
-                    participants={participants}
-                    connections={participantConnections}
-                    roles={participantRoles}
-                    moods={participantMoods}
-                    devices={devices}
-                    isScrumMaster={isScrumMaster}
-                  />
+                    {/* Collapsible Offline Section */}
+                    {participants.filter(p => !participantConnections[p]).length > 0 && (
+                      <OfflineSection
+                        participants={participants}
+                        connections={participantConnections}
+                        roles={participantRoles}
+                        moods={participantMoods}
+                        devices={devices}
+                        isScrumMaster={isScrumMaster}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* ─── Main Content (Voting, Chat, Queue) ─────────────────────────────── */}
-          <div className="flex-1">
-            {!hasJoined ? (
-              <div className="max-w-md mx-auto text-center">
-                <h1 className="text-2xl font-bold mb-4 text-blue-700 dark:text-blue-300">
-                  Join the Pointing Session
-                </h1>
-                {error && <p className="text-red-500 mb-2">{error}</p>}
-                <input
-                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  placeholder="Team Name"
-                  value={room}
-                  onChange={e => setRoom(e.target.value)}
-                />
-                <input
-                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  placeholder="Nickname"
-                  value={nickname}
-                  onChange={e => setNickname(e.target.value)}
-                />
-                <select
-                  className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                >
-                  {ROLE_OPTIONS.map(r => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="p-2 border rounded w-full mb-2 text-2xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  value={selectedAvatar}
-                  onChange={e => setSelectedAvatar(e.target.value)}
-                >
-                  {AVATAR_EMOJIS.map(emoji => (
-                    <option key={emoji} value={emoji}>
-                      {emoji}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-4xl mt-2 text-center">{selectedAvatar}</div>
-                <button
-                  id="tour-join-btn"
-                  className="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-                  onClick={join}
-                >
-                  Join
-                </button>
-              </div>
-            ) : (
-              <>
+              {/* ─── Main Content (Voting, Chat, Queue) ─────────────────────────────── */}
+              <div className="flex-1">
                 {sessionActive && (
                   <>
                     <h2 className="text-xl font-bold mb-4 text-blue-800 dark:text-blue-400">
@@ -1429,10 +1349,10 @@ export default function ScrumPointingApp() {
                     </div>
                   </form>
                 </dialog>
-              </>
-            )}
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
