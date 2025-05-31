@@ -602,48 +602,41 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants (Single‐column, original “padded” cards) */}
-                <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto pr-2 custom-scrollbar py-1">
-                  {onlineParticipants.map((p) => {
-                    const roleName   = participantRoles[p];
-                    const mood       = participantMoods[p];
+                {/* Online Participants: reverted to original styling */}
+                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
+                  {participants.map((p) => {
+                    const isConnected = participantConnections[p];
+                    const roleName = participantRoles[p];
+                    const mood = participantMoods[p];
                     const deviceType = devices[p];
+
                     return (
                       <div
                         key={p}
-                        className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm`}
+                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
                       >
-                        {/* Avatar + Name/Role */}
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                          <div className="text-sm leading-tight max-w-[50%]">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100 truncate">
-                              {p}
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                              {roleName}
-                            </div>
+                          <div className="text-sm leading-tight">
+                            <div className="font-semibold text-gray-800 dark:text-gray-100">{p}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{roleName}</div>
                           </div>
                         </div>
-
-                        {/* Status / Mood / Device */}
-                        <div className="flex flex-col items-end text-[10px] space-y-1">
-                          <div className="text-green-600 dark:text-green-400 font-medium">
-                            🟢 Online
+                        <div className="flex flex-col items-end text-xs text-right space-y-1">
+                          <div
+                            className={isConnected ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-500 dark:text-red-400 font-medium'}
+                          >
+                            {isConnected ? '🟢 Online' : '🔴 Offline'}
                           </div>
-                          {mood && (
-                            <div className="text-gray-500 dark:text-gray-400 truncate">
-                              {mood}
-                            </div>
-                          )}
+                          {mood && <div className="text-gray-500 dark:text-gray-400">{mood}</div>}
                           {deviceType === 'mobile' ? (
                             <span className="text-xs">📱</span>
                           ) : (
                             <span className="text-xs">💻</span>
                           )}
-                          {isScrumMaster && (
+                          {isScrumMaster && !isConnected && (
                             <button
-                              className="text-red-500 hover:underline text-[8px]"
+                              className="text-red-500 hover:underline text-xs"
                               onClick={() => socket.emit('forceRemoveUser', p)}
                             >
                               Remove
@@ -667,44 +660,37 @@ export default function ScrumPointingApp() {
                     </button>
 
                     {showOffline && (
-                      <div className="mt-2 grid grid-cols-1 gap-1 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar py-1">
+                      <div className="mt-2 grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
                         {offlineParticipants.map((p) => {
                           const roleName   = participantRoles[p];
                           const mood       = participantMoods[p];
                           const deviceType = devices[p];
+
                           return (
                             <div
                               key={p}
-                              className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm`}
+                              className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                                <div className="text-sm leading-tight max-w-[50%]">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-100 truncate">
-                                    {p}
-                                  </div>
-                                  <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                                    {roleName}
-                                  </div>
+                                <div className="text-sm leading-tight">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-100">{p}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">{roleName}</div>
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end text-[10px] space-y-1">
+                              <div className="flex flex-col items-end text-xs text-right space-y-1">
                                 <div className="text-red-500 dark:text-red-400 font-medium">
                                   🔴 Offline
                                 </div>
-                                {mood && (
-                                  <div className="text-gray-500 dark:text-gray-400 truncate">
-                                    {mood}
-                                  </div>
-                                )}
+                                {mood && <div className="text-gray-500 dark:text-gray-400">{mood}</div>}
                                 {deviceType === 'mobile' ? (
                                   <span className="text-xs">📱</span>
                                 ) : (
                                   <span className="text-xs">💻</span>
                                 )}
-                                {isScrumMaster && (
+                                {isScrumMaster && !participantConnections[p] && (
                                   <button
-                                    className="text-red-500 hover:underline text-[8px]"
+                                    className="text-red-500 hover:underline text-xs"
                                     onClick={() => socket.emit('forceRemoveUser', p)}
                                   >
                                     Remove
