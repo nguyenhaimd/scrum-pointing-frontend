@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 function getDeviceType() {
   const ua = navigator.userAgent;
-  return /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? "mobile" : "desktop";
+  return /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? 'mobile' : 'desktop';
 }
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ['websocket'],
@@ -381,15 +381,9 @@ socket.on('sessionTerminated', () => {
         return;
       }
     }
-    console.log('📱 Device Type Detected:', getDeviceType());
-    socket.emit('join', {
-      nickname,
-      room,
-      role,
-      avatar: selectedAvatar,
-      emoji: myMood,
-      device: getDeviceType()
-    });
+    const joinData = { nickname, room, role, avatar: selectedAvatar, emoji: myMood, device: getDeviceType() };
+    console.log('📱 Device Type Detected:', joinData.device);
+    socket.emit('join', joinData);
     setHasJoined(true);
     setGlobalStartTime(Date.now());
     setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
@@ -548,15 +542,7 @@ const cancelStart = () => {
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         onClick={() => {
-          console.log('📱 Device Type Detected:', getDeviceType());
           socket.emit('join', {
-            nickname,
-            room,
-            role,
-            avatar: selectedAvatar,
-            emoji: myMood,
-            device: getDeviceType()
-          });
             nickname,
             room,
             role,
