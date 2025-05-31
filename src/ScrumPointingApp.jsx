@@ -419,7 +419,7 @@ export default function ScrumPointingApp() {
     const text = chatInput.trim();
     if (!text) return;
 
-    // If user typed "haifetti" (case-insensitive), trigger confetti
+    // If user typed "haifetti" (case-insensitive), trigger confetti at top level
     if (text.toLowerCase() === 'haifetti') {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 10000);
@@ -626,6 +626,9 @@ export default function ScrumPointingApp() {
       <div className="min-h-screen bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 from-sky-100 to-blue-200 p-4 font-sans text-gray-800 dark:text-gray-100 relative">
         <Toaster position="top-right" reverseOrder={false} />
 
+        {/* ─── TOP-LEVEL CONFETTI (for “haifetti” or votes) ───────────────────────── */}
+        {showConfetti && <Confetti width={width} height={height} />}
+
         {/* ─── GUIDED TOUR ───────────────────────────────────────────────────────── */}
         <Joyride
           steps={tourSteps}
@@ -701,62 +704,64 @@ export default function ScrumPointingApp() {
           )}
         </div>
 
-        {/* ─── COLLAPSIBLE “REACTIONS & MOOD” PANEL ───────────────────────────────── */}
-        <div className="mb-4">
-          <button
-            className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-            onClick={() => setShowReactionsPanel(prev => !prev)}
-          >
-            <span className="font-semibold">Reactions & Mood</span>
-            <span>{showReactionsPanel ? '▲' : '▼'}</span>
-          </button>
+        {/* ─── COLLAPSIBLE “REACTIONS & MOOD” PANEL (only AFTER join) ───────────────── */}
+        {hasJoined && (
+          <div className="mb-4">
+            <button
+              className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              onClick={() => setShowReactionsPanel(prev => !prev)}
+            >
+              <span className="font-semibold">Reactions & Mood</span>
+              <span>{showReactionsPanel ? '▲' : '▼'}</span>
+            </button>
 
-          {showReactionsPanel && (
-            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-b-lg p-4 space-y-4">
-              {/* ── Mood Selector ─────────────────────────────────────────── */}
-              <div>
-                <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
-                  Select Your Current Mood:
+            {showReactionsPanel && (
+              <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-b-lg p-4 space-y-4">
+                {/* ── Mood Selector ─────────────────────────────────────────── */}
+                <div>
+                  <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Select Your Current Mood:
+                  </div>
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+                      <button
+                        key={emoji}
+                        onClick={() => updateMood(emoji)}
+                        className={`text-2xl p-2 rounded-full transition ${
+                          myMood === emoji
+                            ? 'bg-blue-200 dark:bg-blue-700 border-2 border-blue-500 dark:border-blue-300'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                        title={label}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex justify-center gap-3 flex-wrap">
-                  {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
-                    <button
-                      key={emoji}
-                      onClick={() => updateMood(emoji)}
-                      className={`text-2xl p-2 rounded-full transition ${
-                        myMood === emoji
-                          ? 'bg-blue-200 dark:bg-blue-700 border-2 border-blue-500 dark:border-blue-300'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                      title={label}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+
+                {/* ── Emoji Reaction Buttons ───────────────────────────────── */}
+                <div>
+                  <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Send a Quick Emoji Reaction:
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {REACTION_EMOJIS.map((emoji, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => sendReaction(emoji)}
+                        className="text-2xl hover:scale-125 transition"
+                        title={`React with ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              {/* ── Emoji Reaction Buttons ───────────────────────────────── */}
-              <div>
-                <div className="text-sm text-center font-medium mb-1 text-gray-700 dark:text-gray-300">
-                  Send a Quick Emoji Reaction:
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {REACTION_EMOJIS.map((emoji, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => sendReaction(emoji)}
-                      className="text-2xl hover:scale-125 transition"
-                      title={`React with ${emoji}`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* ─── OFFLINE / RECONNECT BANNERS ─────────────────────────────────────── */}
         {showOfflineModal && (
@@ -937,7 +942,6 @@ export default function ScrumPointingApp() {
                     moods={participantMoods}
                     devices={devices}
                     isScrumMaster={isScrumMaster}
-                    toggleVisibility={() => {}} /* placeholder */
                   />
                 )}
               </div>
@@ -1069,7 +1073,6 @@ export default function ScrumPointingApp() {
 
                     {votesRevealed && (
                       <>
-                        {showConfetti && <Confetti width={width} height={height} />}
                         <div className="mt-6 bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                           <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
                             Votes
