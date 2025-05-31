@@ -602,38 +602,48 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants: reverted to original styling */}
+                {/* Online Participants: fixed-height cards, no truncation */}
                 <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
                   {participants.map((p) => {
                     const isConnected = participantConnections[p];
-                    const roleName = participantRoles[p];
-                    const mood = participantMoods[p];
-                    const deviceType = devices[p];
+                    const roleName    = participantRoles[p];
+                    const mood        = participantMoods[p];
+                    const deviceType  = devices[p];
 
                     return (
                       <div
                         key={p}
-                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
+                        className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
                       >
+                        {/* Avatar + Name/Role */}
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                          <div className="text-sm leading-tight">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100">{p}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{roleName}</div>
+                          <div className="flex flex-col">
+                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                              {p}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {roleName}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end text-xs text-right space-y-1">
-                          <div
-                            className={isConnected ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-500 dark:text-red-400 font-medium'}
-                          >
+
+                        {/* Status / Mood / Device */}
+                        <div className="flex flex-col items-end text-xs space-y-1">
+                          <div className={isConnected
+                            ? 'text-green-600 dark:text-green-400 font-medium'
+                            : 'text-red-500 dark:text-red-400 font-medium'
+                          }>
                             {isConnected ? '🟢 Online' : '🔴 Offline'}
                           </div>
-                          {mood && <div className="text-gray-500 dark:text-gray-400">{mood}</div>}
-                          {deviceType === 'mobile' ? (
-                            <span className="text-xs">📱</span>
-                          ) : (
-                            <span className="text-xs">💻</span>
+                          {mood && (
+                            <div className="text-gray-500 dark:text-gray-400 text-xs">
+                              {mood}
+                            </div>
                           )}
+                          <div className="text-xs">
+                            {deviceType === 'mobile' ? '📱' : '💻'}
+                          </div>
                           {isScrumMaster && !isConnected && (
                             <button
                               className="text-red-500 hover:underline text-xs"
@@ -662,32 +672,38 @@ export default function ScrumPointingApp() {
                     {showOffline && (
                       <div className="mt-2 grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
                         {offlineParticipants.map((p) => {
-                          const roleName   = participantRoles[p];
-                          const mood       = participantMoods[p];
-                          const deviceType = devices[p];
+                          const roleName    = participantRoles[p];
+                          const mood        = participantMoods[p];
+                          const deviceType  = devices[p];
 
                           return (
                             <div
                               key={p}
-                              className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
+                              className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm"
                             >
                               <div className="flex items-center gap-3">
                                 <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
-                                <div className="text-sm leading-tight">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-100">{p}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">{roleName}</div>
+                                <div className="flex flex-col">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                                    {p}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {roleName}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end text-xs text-right space-y-1">
+                              <div className="flex flex-col items-end text-xs space-y-1">
                                 <div className="text-red-500 dark:text-red-400 font-medium">
                                   🔴 Offline
                                 </div>
-                                {mood && <div className="text-gray-500 dark:text-gray-400">{mood}</div>}
-                                {deviceType === 'mobile' ? (
-                                  <span className="text-xs">📱</span>
-                                ) : (
-                                  <span className="text-xs">💻</span>
+                                {mood && (
+                                  <div className="text-gray-500 dark:text-gray-400 text-xs">
+                                    {mood}
+                                  </div>
                                 )}
+                                <div className="text-xs">
+                                  {deviceType === 'mobile' ? '📱' : '💻'}
+                                </div>
                                 {isScrumMaster && !participantConnections[p] && (
                                   <button
                                     className="text-red-500 hover:underline text-xs"
@@ -1039,7 +1055,7 @@ export default function ScrumPointingApp() {
                             className="flex justify-between items-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border dark:border-gray-600 text-left px-4 py-2 mb-1 rounded"
                           >
                             <button
-                              className="flex-1 text-left text-gray-800 dark:text-gray-200 truncate"
+                              className="flex-1 text-left text-gray-800 dark:text-gray-200"
                               onClick={() => handleStartSession(title, index)}
                             >
                               ▶️ {title}
