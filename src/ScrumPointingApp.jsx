@@ -7,8 +7,10 @@ import toast, { Toaster } from 'react-hot-toast';
 
 
 function getDeviceType() {
-  const ua = navigator.userAgent;
-  return /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? "mobile" : "desktop";
+  const ua = navigator.userAgent.toLowerCase();
+  const isMobile = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10|opera mini/.test(ua);
+  const isTablet = /ipad|android(?!.*mobile)/.test(ua);
+  return isMobile || isTablet ? "mobile" : "desktop";
 }
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
@@ -384,7 +386,14 @@ socket.on('sessionTerminated', () => {
         return;
       }
     }
-    socket.emit('join', { nickname, room, role, avatar: selectedAvatar, emoji: myMood });
+    socket.emit('join', {
+      nickname,
+      room,
+      role,
+      avatar: selectedAvatar,
+      emoji: myMood,
+      device: getDeviceType()
+    });
     setHasJoined(true);
     setGlobalStartTime(Date.now());
     setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
