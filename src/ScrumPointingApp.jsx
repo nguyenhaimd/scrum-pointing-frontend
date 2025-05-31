@@ -52,6 +52,7 @@ export default function ScrumPointingApp() {
   const [participantAvatars, setParticipantAvatars] = useState({});
   const [participantMoods, setParticipantMoods] = useState({});
   const [participantConnections, setParticipantConnections] = useState({});
+  const [devices, setDevices] = useState({});
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [reactions, setReactions] = useState([]);
@@ -190,7 +191,7 @@ const logout = () => {
   }, [globalStartTime]);
 
   useEffect(() => {
-    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected }) => {
+    socket.on('participantsUpdate', ({ names, roles, avatars, moods, connected, devices }) => {
       setParticipants(names);
       setParticipantRoles(roles || {});
       setParticipantAvatars(avatars || {});
@@ -202,6 +203,7 @@ const logout = () => {
     return acc;
   }, {});
       setParticipantConnections(connectionMap);
+      setDevices(devices || {});
 
     });
 
@@ -718,6 +720,7 @@ const cancelStart = () => {
           </div>
         </div>
         <div className="flex flex-col items-end text-xs text-right space-y-1">
+          {devices[p] === 'mobile' ? <span className="text-sm">📱</span> : <span className="text-sm">💻</span>}
           <div className={isConnected ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
             {isConnected ? '🟢 Online' : '🔴 Offline'}
           </div>
