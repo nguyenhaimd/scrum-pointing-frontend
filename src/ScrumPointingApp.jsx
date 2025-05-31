@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import Joyride, { STATUS } from 'react-joyride';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@react-hook/window-size';
 import { motion } from 'framer-motion';
@@ -101,6 +102,135 @@ export default function ScrumPointingApp() {
   const isScrumMaster = role === 'Scrum Master';
   const isDeveloper   = role === 'Developer';
   const isObserver    = role === 'Observer' || role === 'Product Owner';
+
+  // ─── JOYRIDE (GUIDED TOUR) STATE ──────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+
+  // Build tour steps based on the user's role
+  const buildTourSteps = useCallback(() => {
+    const commonSteps = [
+      {
+        target: '#tour-join-btn',
+        content: 'First, enter your Team Name, Nickname, select a Role/Avatar, then click “Join” to enter the session.',
+        disableBeacon: true,
+      },
+      {
+        target: '#tour-participants',
+        content: 'This panel shows everyone in the session. You can see Online/Offline status, mood, and whether people are on Mobile or Desktop.',
+      },
+      {
+        target: '#tour-vote-container',
+        content: 'As a Developer, you click one of these buttons to cast your estimate. The selected button becomes highlighted.',
+        placement: 'bottom',
+      },
+      {
+        target: '#tour-reveal-btn',
+        content: 'When you’re ready, the Scrum Master clicks “Reveal Votes” to show everyone’s votes together.',
+        placement: 'top',
+      },
+      {
+        target: '#tour-chat-input',
+        content: 'Use this chat box to send messages to the whole team in real time.',
+      },
+    ];
+
+    if (isScrumMaster) {
+      return [
+        {
+          target: '#tour-join-btn',
+          content: 'As the Scrum Master, join first and then you’ll see additional controls.',
+          disableBeacon: true,
+        },
+        {
+          target: '#tour-add-story',
+          content: 'You can add stories here. Type a title, then click “Add Story” to queue it.',
+        },
+        {
+          target: '#tour-story-queue',
+          content: 'Queued stories appear here. Click ▶️ to start a picking round for that story.',
+        },
+        {
+          target: '#tour-vote-container',
+          content: 'Developers will vote on these buttons. You monitor progress here.',
+        },
+        {
+          target: '#tour-reveal-btn',
+          content: 'When all votes are in (or you’re ready), click “Reveal Votes.”',
+        },
+        {
+          target: '#tour-participants',
+          content: 'You can see who’s online/offline, and if anyone’s disconnected you can remove them.',
+        },
+        {
+          target: '#tour-chat-input',
+          content: 'Chat here with the team. Vote summaries will also appear in chat.',
+        },
+      ];
+    } else if (isDeveloper) {
+      return [
+        {
+          target: '#tour-join-btn',
+          content: 'Enter your details and join the session.',
+          disableBeacon: true,
+        },
+        {
+          target: '#tour-participants',
+          content: 'See who else is in the session, whether they’re online/offline, and what mood they’re in.',
+        },
+        {
+          target: '#tour-vote-container',
+          content: 'Click a number to cast your estimate. The selected button will highlight so you know it’s been registered.',
+        },
+        {
+          target: '#tour-reveal-btn',
+          content: 'Wait here until the Scrum Master reveals the votes.',
+        },
+        {
+          target: '#tour-chat-input',
+          content: 'Send messages to your team here while waiting.',
+        },
+      ];
+    } else {
+      // Observer or Product Owner
+      return [
+        {
+          target: '#tour-join-btn',
+          content: 'Join the session to observe the voting.',
+          disableBeacon: true,
+        },
+        {
+          target: '#tour-participants',
+          content: 'View participant status, mood, and device type here.',
+        },
+        {
+          target: '#tour-vote-container',
+          content: 'As an Observer, you cannot vote, but you can watch votes being cast by others.',
+        },
+        {
+          target: '#tour-reveal-btn',
+          content: 'Wait for the Scrum Master to reveal everyone’s votes.',
+        },
+        {
+          target: '#tour-chat-input',
+          content: 'Feel free to chat or react with emojis while you watch.',
+        },
+      ];
+    }
+  }, [isScrumMaster, isDeveloper, isObserver]);
+
+  // Whenever role or hasJoined changes, recalculate steps
+  useEffect(() => {
+    setTourSteps(buildTourSteps());
+  }, [buildTourSteps]);
+
+  // Joyride callback: Stop tour when finished or skipped
+  const handleTourCallback = (data) => {
+    const { status, index, action } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunTour(false);
+    }
+  };
 
   // ─── TIMERS & CONSENSUS ────────────────────────────────────────────────────────
   const totalDevelopers = participants.filter((p) => participantRoles[p] === 'Developer').length;
@@ -285,7 +415,7 @@ export default function ScrumPointingApp() {
       socket.off('connect');
       socket.off('disconnect');
     };
-  }, []);
+  }, [nickname]);
 
   // ─── SCROLL CHAT ON NEW MESSAGES ───────────────────────────────────────────────
   useEffect(() => {
@@ -453,7 +583,23 @@ export default function ScrumPointingApp() {
       <div className="min-h-screen bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 from-sky-100 to-blue-200 p-4 font-sans text-gray-800 dark:text-gray-100 relative">
         <Toaster position="top-right" reverseOrder={false} />
 
-        {/* ─── Top Bar: Dark Mode Toggle + User Info ─────────────────────────── */}
+        {/* ─── JOYRIDE: Guided Tour Component ─────────────────────────────────── */}
+        <Joyride
+          steps={tourSteps}
+          run={runTour}
+          continuous={true}
+          scrollToFirstStep={true}
+          showSkipButton={true}
+          callback={handleTourCallback}
+          spotlightPadding={6}
+          styles={{
+            options: {
+              zIndex: 10000,
+            },
+          }}
+        />
+
+        {/* ─── Top Bar: Dark Mode Toggle + User Info + Start Tour ───────────── */}
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -462,6 +608,18 @@ export default function ScrumPointingApp() {
           >
             {darkMode ? '☀️' : '☾'}
           </button>
+
+          {/* Start Tour Button */}
+          {hasJoined && (
+            <button
+              onClick={() => setRunTour(true)}
+              className="text-sm bg-blue-500 dark:bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-600 transition"
+              title="Start Guided Tour"
+            >
+              Start Guided Tour
+            </button>
+          )}
+
           {hasJoined && (
             <div className="flex items-center space-x-2">
               <span>You are:</span>
@@ -470,6 +628,7 @@ export default function ScrumPointingApp() {
               <span>({currentUserInfo.role})</span>
               {isScrumMaster && (
                 <button
+                  id="tour-end-session"
                   className="bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 text-xs whitespace-nowrap ml-4"
                   onClick={() => socket.emit('endPointingSession')}
                 >
@@ -591,7 +750,10 @@ export default function ScrumPointingApp() {
 
             {/* Render full list when width>=1024 or showSidebar is true */}
             {(showSidebar || width >= 1024) && (
-              <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]">
+              <div
+                id="tour-participants"
+                className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]"
+              >
                 {/* Sticky Header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
                   <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
@@ -602,7 +764,7 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants: fixed-height cards, no truncation, status/mood/device in one row */}
+                {/* Online Participants: fixed-height cards; status/mood/device in one row */}
                 <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar rounded-md">
                   {participants.map((p) => {
                     const isConnected = participantConnections[p];
@@ -764,6 +926,7 @@ export default function ScrumPointingApp() {
                 </select>
                 <div className="text-4xl mt-2 text-center">{selectedAvatar}</div>
                 <button
+                  id="tour-join-btn"
                   className="bg-blue-600 text-white px-6 py-2 mt-4 rounded hover:bg-blue-700 transition"
                   onClick={join}
                 >
@@ -808,7 +971,10 @@ export default function ScrumPointingApp() {
 
                     {isDeveloper && !votesRevealed && (
                       <>
-                        <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
+                        <div
+                          id="tour-vote-container"
+                          className="grid grid-cols-3 gap-4 mb-4 mt-6"
+                        >
                           {POINT_OPTIONS.map((pt) => (
                             <button
                               key={pt}
@@ -897,6 +1063,7 @@ export default function ScrumPointingApp() {
                       <div className="flex justify-center flex-wrap gap-4 mt-6">
                         {!votesRevealed && (
                           <button
+                            id="tour-reveal-btn"
                             className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
                             onClick={revealVotes}
                           >
@@ -1004,6 +1171,7 @@ export default function ScrumPointingApp() {
                   </div>
                   <div className="mt-2 flex gap-2">
                     <input
+                      id="tour-chat-input"
                       className="flex-1 border p-1 rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       placeholder="Type a message..."
                       value={chatInput}
@@ -1026,6 +1194,7 @@ export default function ScrumPointingApp() {
                 {!sessionActive && isScrumMaster && (
                   <div className="mb-6">
                     <input
+                      id="tour-add-story"
                       className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       placeholder="Add story title"
                       value={storyTitle}
@@ -1035,13 +1204,14 @@ export default function ScrumPointingApp() {
                       }}
                     />
                     <button
+                      id="tour-add-story-btn"
                       className="bg-blue-500 dark:bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-600"
                       onClick={() => handleStartSession(storyTitle, 0)}
                     >
                       Add Story
                     </button>
                     {storyQueue.length > 0 && (
-                      <div className="mt-4">
+                      <div id="tour-story-queue" className="mt-4">
                         <h3 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">
                           Queued Stories:
                         </h3>
