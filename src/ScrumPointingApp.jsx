@@ -7,10 +7,8 @@ import toast, { Toaster } from 'react-hot-toast';
 
 
 function getDeviceType() {
-  const ua = navigator.userAgent.toLowerCase();
-  const isMobile = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10|opera mini/.test(ua);
-  const isTablet = /ipad|android(?!.*mobile)/.test(ua);
-  return isMobile || isTablet ? "mobile" : "desktop";
+  const ua = navigator.userAgent;
+  return /Mobi|Android|iPhone|iPad|iPod/.test(ua) ? "mobile" : "desktop";
 }
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
