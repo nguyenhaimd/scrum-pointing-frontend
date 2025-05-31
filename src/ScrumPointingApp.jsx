@@ -576,7 +576,7 @@ export default function ScrumPointingApp() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* ─── Sidebar (Participants) ───────────────────────────────────────── */}
           <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
-            {/* Show toggle header on mobile (width < 1024) */}
+            {/* Mobile toggle header */}
             {width < 1024 && (
               <div className="flex justify-between items-center mb-2 px-2">
                 <span className="font-semibold">Users in this session</span>
@@ -589,10 +589,10 @@ export default function ScrumPointingApp() {
               </div>
             )}
 
-            {/* Only render the full list if width>=1024 OR if showSidebar===true */}
+            {/* Render full list when width>=1024 or showSidebar is true */}
             {(showSidebar || width >= 1024) && (
               <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 shadow text-sm flex flex-col h-[calc(100vh-4rem)]">
-                {/* Sticky Header inside large view */}
+                {/* Sticky Header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 pb-2 pt-1">
                   <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 border-b dark:border-gray-600 pb-1">
                     👥 Users Online: {onlineParticipants.length} / {participants.length}
@@ -602,7 +602,7 @@ export default function ScrumPointingApp() {
                   </div>
                 </div>
 
-                {/* Online Participants (Single‐column, fixed‐height cards) */}
+                {/* Online Participants (Single‐column, original “padded” cards) */}
                 <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto pr-2 custom-scrollbar py-1">
                   {onlineParticipants.map((p) => {
                     const roleName   = participantRoles[p];
@@ -611,19 +611,13 @@ export default function ScrumPointingApp() {
                     return (
                       <div
                         key={p}
-                        className={`h-12 flex items-center justify-between rounded-lg px-2 shadow-sm
-                          ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
+                        className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm`}
                       >
                         {/* Avatar + Name/Role */}
-                        <div className="flex items-center gap-2">
-                          <div className="relative">
-                            <span className="text-xl">{participantAvatars[p] || '❓'}</span>
-                            {deviceType === 'mobile' && (
-                              <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
-                            )}
-                          </div>
-                          <div className="flex flex-col leading-tight max-w-[50%]">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                          <div className="text-sm leading-tight max-w-[50%]">
+                            <div className="font-semibold text-gray-800 dark:text-gray-100 truncate">
                               {p}
                             </div>
                             <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
@@ -633,7 +627,7 @@ export default function ScrumPointingApp() {
                         </div>
 
                         {/* Status / Mood / Device */}
-                        <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                        <div className="flex flex-col items-end text-[10px] space-y-1">
                           <div className="text-green-600 dark:text-green-400 font-medium">
                             🟢 Online
                           </div>
@@ -681,18 +675,12 @@ export default function ScrumPointingApp() {
                           return (
                             <div
                               key={p}
-                              className={`h-12 flex items-center justify-between rounded-lg px-2 shadow-sm
-                                ${deviceType === 'mobile' ? 'bg-yellow-50 dark:bg-yellow-900' : 'bg-gray-50 dark:bg-gray-700'}`}
+                              className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 shadow-sm`}
                             >
-                              <div className="flex items-center gap-2">
-                                <div className="relative">
-                                  <span className="text-xl">{participantAvatars[p] || '❓'}</span>
-                                  {deviceType === 'mobile' && (
-                                    <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full" />
-                                  )}
-                                </div>
-                                <div className="flex flex-col leading-tight max-w-[50%]">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                                <div className="text-sm leading-tight max-w-[50%]">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-100 truncate">
                                     {p}
                                   </div>
                                   <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
@@ -700,7 +688,7 @@ export default function ScrumPointingApp() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                              <div className="flex flex-col items-end text-[10px] space-y-1">
                                 <div className="text-red-500 dark:text-red-400 font-medium">
                                   🔴 Offline
                                 </div>
