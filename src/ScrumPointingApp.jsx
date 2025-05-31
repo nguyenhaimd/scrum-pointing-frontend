@@ -823,17 +823,24 @@ const cancelStart = () => {
 {isDeveloper && !votesRevealed && (
   <>
     <div className="grid grid-cols-3 gap-4 mb-4 mt-6">
+                          
       {POINT_OPTIONS.map((pt) => (
-        <button
-          key={pt}
-          className={`bg-white border ${
-            vote === pt ? 'border-green-500' : 'border-blue-300'
-          } text-blue-600 font-bold text-xl rounded-xl shadow hover:bg-blue-50 py-4 transition`}
-          onClick={() => castVote(pt)}
-        >
-          {pt}
-        </button>
-      ))}
+  <button
+    key={pt}
+    onClick={() => castVote(pt)}
+    className={`
+      py-4 px-6 rounded-xl font-bold text-xl shadow transition
+      ${
+        vote === pt
+          ? 'bg-green-500 text-white border border-green-600'
+          : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
+      }
+    `}
+  >
+    {pt}
+  </button>
+))}
+                          
     </div>
 
     {vote && (
