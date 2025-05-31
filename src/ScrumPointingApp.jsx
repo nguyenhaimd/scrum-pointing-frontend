@@ -94,8 +94,9 @@ export default function ScrumPointingApp() {
   const [currentUserInfo, setCurrentUserInfo]   = useState({});
   const [showAbout, setShowAbout]               = useState(false);
 
-  // Dark mode toggle
+  // Dark mode toggle & premium modal
   const [darkMode, setDarkMode] = useState(false);
+  const [showDarkPremiumModal, setShowDarkPremiumModal] = useState(false);
 
   // Offline check before starting a story
   const [showOfflineModal, setShowOfflineModal] = useState(false);
@@ -589,6 +590,8 @@ export default function ScrumPointingApp() {
     setShowAbout(false);
     setShowReconnectModal(false);
     setMyVoteHistory([]);
+    setKonamiUnlocked(false);
+    setShowDarkPremiumModal(false);
   };
 
   // ─── CALCULATE CONSENSUS ─────────────────────────────────────────────────────
@@ -623,7 +626,29 @@ export default function ScrumPointingApp() {
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 from-sky-100 to-blue-200 p-4 font-sans text-gray-800 dark:text-gray-100 relative">
+      <div
+        className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 relative ${
+          konamiUnlocked
+            ? ''
+            : 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
+        }`}
+        style={
+          konamiUnlocked
+            ? {
+                background: `repeating-linear-gradient(
+                  45deg,
+                  red,
+                  orange,
+                  yellow,
+                  green,
+                  blue,
+                  indigo,
+                  violet
+                )`,
+              }
+            : {}
+        }
+      >
         <Toaster position="top-right" reverseOrder={false} />
 
         {/* ─── TOP-LEVEL CONFETTI (for “haifetti” or votes) ───────────────────────── */}
@@ -653,7 +678,7 @@ export default function ScrumPointingApp() {
                 🎉 Konami Unlocked! 🎉
               </h2>
               <p className="mb-4 text-gray-800 dark:text-gray-200">
-                You found the secret Easter Egg! Enjoy this special theme for a while. 😎
+                The Rainbow Theme is now active! Enjoy the colors. 🌈
               </p>
               <button
                 className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
@@ -665,10 +690,35 @@ export default function ScrumPointingApp() {
           </div>
         )}
 
+        {/* ─── DARK MODE PREMIUM MODAL ─────────────────────────────────────────────── */}
+        {showDarkPremiumModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-md">
+              <h2 className="text-xl font-semibold mb-3 dark:text-gray-200">
+                ☕ Dark Mode is a Premium Feature ☕
+              </h2>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Enjoy Dark Mode only if you’re willing to <strong>run out for Starbucks</strong> before that big meeting. 
+                Otherwise… stay in Light Mode! 😊
+              </p>
+              <button
+                className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded hover:bg-green-700 dark:hover:bg-green-600"
+                onClick={() => setShowDarkPremiumModal(false)}
+              >
+                I’ll Go Get Coffee ☕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ─── Top Bar: Dark Mode + Guided Tour + User Info ─────────────────────── */}
         <div className="flex justify-between items-center mb-4">
           <button
-            onClick={() => setDarkMode(!darkMode)}
+            onClick={() => {
+              setDarkMode(!darkMode);
+              // Show the “premium” modal whenever they toggle ON
+              if (!darkMode) setShowDarkPremiumModal(true);
+            }}
             className="text-xl bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 hover:bg-gray-300 p-2 rounded-full transition"
             title="Toggle Dark Mode"
           >
@@ -703,6 +753,13 @@ export default function ScrumPointingApp() {
             </div>
           )}
         </div>
+
+        {/* ─── STICKY CURRENT STORY BANNER ────────────────────────────────────────── */}
+        {hasJoined && sessionActive && (
+          <div className="sticky top-0 bg-blue-200 dark:bg-blue-900 text-center py-2 font-semibold text-blue-800 dark:text-blue-200 mb-4 rounded">
+            Current Story: {storyTitle}
+          </div>
+        )}
 
         {/* ─── COLLAPSIBLE “REACTIONS & MOOD” PANEL (only AFTER join) ───────────────── */}
         {hasJoined && (
@@ -898,7 +955,17 @@ export default function ScrumPointingApp() {
                         className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                          {roleName === 'Scrum Master' ? (
+                            <motion.span
+                              className="text-2xl"
+                              animate={{ scale: [1, 1.1, 1] }}
+                              transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                            >
+                              {participantAvatars[p] || '❓'} 👑
+                            </motion.span>
+                          ) : (
+                            <span className="text-2xl">{participantAvatars[p] || '❓'}</span>
+                          )}
                           <div className="flex flex-col">
                             <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                               {p}
@@ -1036,12 +1103,14 @@ export default function ScrumPointingApp() {
                     )}
 
                     {isDeveloper && !votesRevealed && (
-                      <div
+                      <motion.div
                         id="tour-vote-container"
                         className="grid grid-cols-3 gap-4 mb-4 mt-6"
+                        animate={vote === null ? { scale: [1, 1.05, 1] } : {}}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
                       >
                         {POINT_OPTIONS.map(pt => (
-                          <button
+                          <motion.button
                             key={pt}
                             className={`
                               py-4 px-6 rounded-xl font-bold text-xl shadow transition
@@ -1052,9 +1121,12 @@ export default function ScrumPointingApp() {
                               }
                             `}
                             onClick={() => castVote(pt)}
+                            whileTap={{ scale: 0.9 }}
+                            animate={vote === pt ? { scale: [1, 1.1, 1] } : {}}
+                            transition={{ duration: 0.4 }}
                           >
                             {pt}
-                          </button>
+                          </motion.button>
                         ))}
                         {vote && (
                           <div className="col-span-3 bg-green-50 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded p-3 text-sm text-center shadow-sm mt-2">
@@ -1062,7 +1134,7 @@ export default function ScrumPointingApp() {
                             reveals it.
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     )}
 
                     {vote && (
@@ -1395,7 +1467,7 @@ function OfflineSection({ participants, connections, roles, moods, devices, isSc
                 className="h-12 flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{/* avatar would go here */}❓</span>
+                  <span className="text-2xl">❓</span>
                   <div className="flex flex-col">
                     <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
                       {p}
