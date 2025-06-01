@@ -636,7 +636,7 @@ export default function ScrumPointingApp() {
     setShowAbout(false);
     setShowReconnectModal(false);
     setMyVoteHistory([]);
-    // Did not reset konamiUnlocked so background persists
+    // Don’t reset konamiUnlocked so background persists
     setShowKonamiModal(false);
     setDarkMode(false);
     setShowDarkPremiumModal(false);
@@ -674,24 +674,28 @@ export default function ScrumPointingApp() {
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className={darkMode ? 'dark relative' : 'relative'}>
-      {/* If Konami unlocked, render a retro ASCII background behind everything */}
+      {/* If Konami unlocked, render a retro pixel‐grid + scanlines background behind everything */}
       {konamiUnlocked && (
-        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-          <pre className="text-green-600 font-mono text-xs whitespace-pre-wrap opacity-10 select-none pointer-events-none">
-{`
-  ____   ____  _____  _____  __    __ 
- / __ \\ / __ \\|  __ \\|  __ \\|  \\  /  |
-| |  | | |  | | |__) | |  | |\\ \\/ /| |
-| |  | | |  | |  ___/| |  | | \\  / | |
-| |__| | |__| | |    | |__| | /  \\ | |____
- \\____/ \\____/|_|    |_____/ /_/\\_\\|______|
- 
- Contra Retro Mode Activated
- ▒█▀▀█ ▒█▀▀▀ ▄▀▀ █▀▀▄ ░█▀▀█ ▀▀█▀▀ ░█▀▀█ ▒█▀▀▀█ 
- ▒█░▄▄ ▒█▀▀▀ ▀▄█ █░░█ ▒█▄▄█ ░▒█░░ ▒█▄▄█ ▒█░░▒█ 
- ▒█▄▄█ ▒█▄▄▄ ▄█▄▄ ▀░░▀ ▒█░▒█ ░▒█░░ ▒█░▒█ ▒█▄▄▄█
-`}
-          </pre>
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* 
+            1) Pixel Grid: small green squares every 10×10 px 
+            2) Neon scanlines: very faint pink horizontal stripes 
+          */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: '#000',
+              backgroundImage: `
+                /* tiny green pixel grid */
+                linear-gradient(90deg, rgba(0,255,0,0.2) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(0,255,0,0.2) 1px, transparent 1px),
+                /* neon pink scanlines */
+                linear-gradient(0deg, rgba(255,0,128,0.05) 1px, transparent 1px)
+              `,
+              backgroundSize: '10px 10px, 10px 10px, 100% 2px',
+              backgroundBlendMode: 'overlay'
+            }}
+          />
         </div>
       )}
 
@@ -743,13 +747,13 @@ export default function ScrumPointingApp() {
 
         {/* ─── KONAMI EASTER EGG MODAL ───────────────────────────────────────────── */}
         {showKonamiModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-sm">
               <h2 className="text-2xl font-bold text-purple-700 mb-4 dark:text-purple-300">
                 🎉 Konami Unlocked! 🎉
               </h2>
               <p className="mb-4 text-gray-800 dark:text-gray-200">
-                Gaming Mode activated! Enjoy the retro background. 🌌
+                Gaming Mode activated! Enjoy the retro pixel‐grid background. 🌌
               </p>
               <button
                 className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
