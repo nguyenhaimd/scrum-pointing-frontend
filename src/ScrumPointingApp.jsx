@@ -119,7 +119,8 @@ export default function ScrumPointingApp() {
   const [tourSteps, setTourSteps] = useState([]);
 
   // KONAMI CODE EASTER EGG
-  const [konamiUnlocked, setKonamiUnlocked] = useState(false);
+  const [konamiUnlocked, setKonamiUnlocked]         = useState(false);
+  const [showKonamiModal, setShowKonamiModal]       = useState(false);
   const KONAMI_SEQUENCE = [
     'ArrowUp','ArrowUp',
     'ArrowDown','ArrowDown',
@@ -249,7 +250,7 @@ export default function ScrumPointingApp() {
         const nextSeq = [...prev, key].slice(-KONAMI_SEQUENCE.length);
         if (nextSeq.join(',') === KONAMI_SEQUENCE.join(',')) {
           setKonamiUnlocked(true);
-          // Keep it unlocked permanently; do not revert on close.
+          setShowKonamiModal(true);
         }
         return nextSeq;
       });
@@ -635,7 +636,8 @@ export default function ScrumPointingApp() {
     setShowAbout(false);
     setShowReconnectModal(false);
     setMyVoteHistory([]);
-    setKonamiUnlocked(false);
+    // Did not reset konamiUnlocked so background persists
+    setShowKonamiModal(false);
     setDarkMode(false);
     setShowDarkPremiumModal(false);
   };
@@ -671,20 +673,34 @@ export default function ScrumPointingApp() {
 
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
-    <div className={darkMode ? 'dark' : ''}>
+    <div className={darkMode ? 'dark relative' : 'relative'}>
+      {/* If Konami unlocked, render a retro ASCII background behind everything */}
+      {konamiUnlocked && (
+        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+          <pre className="text-green-600 font-mono text-xs whitespace-pre-wrap opacity-10 select-none pointer-events-none">
+{`
+  ____   ____  _____  _____  __    __ 
+ / __ \\ / __ \\|  __ \\|  __ \\|  \\  /  |
+| |  | | |  | | |__) | |  | |\\ \\/ /| |
+| |  | | |  | |  ___/| |  | | \\  / | |
+| |__| | |__| | |    | |__| | /  \\ | |____
+ \\____/ \\____/|_|    |_____/ /_/\\_\\|______|
+ 
+ Contra Retro Mode Activated
+ ▒█▀▀█ ▒█▀▀▀ ▄▀▀ █▀▀▄ ░█▀▀█ ▀▀█▀▀ ░█▀▀█ ▒█▀▀▀█ 
+ ▒█░▄▄ ▒█▀▀▀ ▀▄█ █░░█ ▒█▄▄█ ░▒█░░ ▒█▄▄█ ▒█░░▒█ 
+ ▒█▄▄█ ▒█▄▄▄ ▄█▄▄ ▀░░▀ ▒█░▒█ ░▒█░░ ▒█░▒█ ▒█▄▄▄█
+`}
+          </pre>
+        </div>
+      )}
+
       <div
         className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 ${
-          konamiUnlocked
-            ? '' 
-            : 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
+          !konamiUnlocked
+            ? 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
+            : 'relative z-10'
         }`}
-        style={
-          konamiUnlocked
-            ? {
-                background: 'linear-gradient(135deg, #070047 0%, #211A50 50%, #BD0EFF 100%)'
-              }
-            : {}
-        }
       >
         <Toaster position="top-right" reverseOrder={false} />
 
@@ -726,18 +742,18 @@ export default function ScrumPointingApp() {
         />
 
         {/* ─── KONAMI EASTER EGG MODAL ───────────────────────────────────────────── */}
-        {konamiUnlocked && (
+        {showKonamiModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-sm">
               <h2 className="text-2xl font-bold text-purple-700 mb-4 dark:text-purple-300">
                 🎉 Konami Unlocked! 🎉
               </h2>
               <p className="mb-4 text-gray-800 dark:text-gray-200">
-                Gaming Mode activated! Enjoy the new background. 🌌
+                Gaming Mode activated! Enjoy the retro background. 🌌
               </p>
               <button
                 className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
-                onClick={() => {/* Do not clear konamiUnlocked; keep gaming background */}}
+                onClick={() => setShowKonamiModal(false)}
               >
                 OK
               </button>
@@ -768,7 +784,7 @@ export default function ScrumPointingApp() {
         )}
 
         {/* ─── TOP BAR: Dark Mode Toggle + Guided Tour + User Info ───────────────── */}
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 relative z-10">
           {/* Dark Mode Toggle */}
           <button
             onClick={() => {
@@ -781,7 +797,8 @@ export default function ScrumPointingApp() {
             {darkMode ? '☀️' : '☾'}
           </button>
 
-          {hasJoined && (
+          {/* Hide guided tour on mobile */}
+          {hasJoined && width >= 768 && (
             <button
               onClick={() => setRunTour(true)}
               className="text-sm bg-blue-500 dark:bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-600 dark:hover:bg-blue-600 transition"
@@ -812,7 +829,7 @@ export default function ScrumPointingApp() {
 
         {/* ─── REACTIONS & MOOD PANEL (Collapsible) ───────────────────────────────── */}
         {hasJoined && (
-          <div className="mb-4">
+          <div className="mb-4 relative z-10">
             <button
               className="text-sm text-blue-600 dark:text-blue-300 underline"
               onClick={() => setShowReactionsPanel(prev => !prev)}
@@ -869,14 +886,14 @@ export default function ScrumPointingApp() {
 
         {/* ─── STICKY CURRENT STORY BANNER ────────────────────────────────────────── */}
         {hasJoined && sessionActive && (
-          <div className="sticky top-0 bg-blue-200 dark:bg-blue-900 text-center py-2 font-semibold text-blue-800 dark:text-blue-200 mb-4 rounded">
+          <div className="sticky top-0 bg-blue-200 dark:bg-blue-900 text-center py-2 font-semibold text-blue-800 dark:text-blue-200 mb-4 rounded relative z-10">
             Current Story: {storyTitle}
           </div>
         )}
 
         {/* ─── POLISHED JOIN SCREEN ───────────────────────────────────────────────────── */}
         {!hasJoined ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full relative z-10">
             {/* Card Container */}
             <div className="w-full max-w-md bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-2xl shadow-lg p-8 space-y-6">
               {/* Title */}
@@ -1035,7 +1052,7 @@ export default function ScrumPointingApp() {
             {/* ─── After Joining: Main Application Content ─────────────────────────── */}
 
             {/* ─── Sidebar + Main Layout ────────────────────────────────────────────── */}
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-col lg:flex-row gap-4 relative z-10">
               {/* ─── Sidebar (Participants) ─────────────────────────────────────────── */}
               <div className={`lg:w-1/4 w-full ${hasJoined ? '' : 'hidden'}`}>
                 {/* Mobile collapse toggle */}
@@ -1295,7 +1312,7 @@ export default function ScrumPointingApp() {
                 )}
 
                 {/* ─── Chat Section ─────────────────────────────────────────────────── */}
-                <div className="text-left text-sm mb-4">
+                <div className="text-left text-sm mb-4 relative z-10">
                   <h3 className="font-semibold mb-1 text-gray-800 dark:text-gray-200">
                     Team Chat
                   </h3>
@@ -1390,7 +1407,7 @@ export default function ScrumPointingApp() {
 
                 {/* ─── Scrum Master: Add / Manage Story Queue ─────────────────────── */}
                 {!sessionActive && isScrumMaster && (
-                  <div className="mb-6">
+                  <div className="mb-6 relative z-10">
                     <input
                       id="tour-add-story"
                       className="p-2 border rounded w-full mb-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
@@ -1454,13 +1471,13 @@ export default function ScrumPointingApp() {
                 )}
 
                 {!sessionActive && !isScrumMaster && (
-                  <p className="text-gray-500 dark:text-gray-400 mt-4">
+                  <p className="text-gray-500 dark:text-gray-400 mt-4 relative z-10">
                     Waiting for Scrum Master to start the session...
                   </p>
                 )}
 
                 {/* ─── About Modal ───────────────────────────────────────────────────────── */}
-                <div className="text-center mt-6">
+                <div className="text-center mt-6 relative z-10">
                   <button
                     className="text-xs text-gray-500 dark:text-gray-400 underline"
                     onClick={() => {
@@ -1501,7 +1518,7 @@ export default function ScrumPointingApp() {
                       <li>✅ Guided tour (react‐joyride) for each role, with skip option</li>
                       <li>✅ Personal vote history visible to developers</li>
                       <li>✅ Error handling and reconnect prompts when disconnected</li>
-                      <li>✅ Polished UI with micro-animations (input focus, button hover/press)</li>
+                      <li>✅ Polished UI with micro‐animations (input focus, button hover/press)</li>
                     </ul>
                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                       Built with 💙 by <strong>HighWind</strong>
