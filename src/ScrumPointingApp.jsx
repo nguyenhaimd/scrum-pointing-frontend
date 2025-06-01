@@ -321,9 +321,10 @@ export default function ScrumPointingApp() {
 
     // Incoming emoji reactions
     socket.on('emojiReaction', ({ sender, emoji }) => {
-      const id = Date.now();
-      const randomX = Math.random() * 80 + 10; // 10%–90% width
-      const randomY = Math.random() * 10 + 80; // 80%–90% height
+      // Spawn a flying emoji marker on everyone’s screen
+      const id = Date.now() + Math.random();
+      const randomX = Math.random() * 80 + 10; // 10%–90% across screen
+      const randomY = Math.random() * 10 + 80; // start near bottom
       setReactions(prev => [
         ...prev,
         { id, sender, emoji, x: randomX, startY: randomY }
@@ -453,7 +454,22 @@ export default function ScrumPointingApp() {
     socket.emit('userTyping');
   };
 
+  // ─── EMOJI REACTIONS: spawn locally + emit ─────────────────────────────────
   const sendReaction = (emoji) => {
+    // Locally spawn a flying emoji right away:
+    const id = Date.now() + Math.random();
+    const randomX = Math.random() * 80 + 10;  // between 10% and 90% horizontally
+    const randomY = Math.random() * 10 + 80;  // between 80% and 90% from top
+    setReactions(prev => [
+      ...prev,
+      { id, sender: nickname, emoji, x: randomX, startY: randomY }
+    ]);
+    // Remove it from local state after ~1.2 s:
+    setTimeout(() => {
+      setReactions(prev => prev.filter(r => r.id !== id));
+    }, 1200);
+
+    // Still emit to the server so everyone else sees it too:
     socket.emit('emojiReaction', { sender: nickname, emoji });
   };
 
@@ -727,8 +743,9 @@ export default function ScrumPointingApp() {
                 ☕ Dark Mode is a Premium Feature ☕
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Enjoy Dark Mode only if you’re willing to <strong>run out for Starbucks</strong> 
-                before that big meeting. Otherwise… stay in Light Mode! 😊
+                Dark mode is only for team members willing to go get coffee at the last minute
+                before an important meeting on your first day on the job with a coworker that
+                promised they will speak up on your behalf if things go astray.
               </p>
               <button
                 className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded hover:bg-green-700 dark:hover:bg-green-600"
