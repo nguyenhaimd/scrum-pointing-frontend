@@ -84,6 +84,10 @@ export default function ScrumPointingApp() {
   const [showSidebar, setShowSidebar]         = useState(false);
   const [showReactionsPanel, setShowReactionsPanel] = useState(false);
 
+  // Dark mode and premium modal
+  const [darkMode, setDarkMode]               = useState(false);
+  const [showDarkPremiumModal, setShowDarkPremiumModal] = useState(false);
+
   // Timers & vote history
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds]     = useState(0);
@@ -615,6 +619,8 @@ export default function ScrumPointingApp() {
     setShowReconnectModal(false);
     setMyVoteHistory([]);
     setKonamiUnlocked(false);
+    setDarkMode(false);
+    setShowDarkPremiumModal(false);
   };
 
   // ─── CALCULATE CONSENSUS ─────────────────────────────────────────────────────
@@ -648,9 +654,29 @@ export default function ScrumPointingApp() {
 
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
-    <div>
+    <div className={darkMode ? 'dark' : ''}>
       <div
-        className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900`}
+        className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 ${
+          konamiUnlocked
+            ? ''
+            : 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
+        }`}
+        style={
+          konamiUnlocked
+            ? {
+                background: `repeating-linear-gradient(
+                  45deg,
+                  red,
+                  orange,
+                  yellow,
+                  green,
+                  blue,
+                  indigo,
+                  violet
+                )`,
+              }
+            : {}
+        }
       >
         <Toaster position="top-right" reverseOrder={false} />
 
@@ -693,8 +719,41 @@ export default function ScrumPointingApp() {
           </div>
         )}
 
-        {/* ─── Top Bar: Guided Tour + User Info ───────────────────────────────────── */}
+        {/* ─── DARK MODE PREMIUM MODAL ─────────────────────────────────────────────── */}
+        {showDarkPremiumModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-md">
+              <h2 className="text-xl font-semibold mb-3 dark:text-gray-200">
+                ☕ Dark Mode is a Premium Feature ☕
+              </h2>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Enjoy Dark Mode only if you’re willing to <strong>run out for Starbucks</strong> 
+                before that big meeting. Otherwise… stay in Light Mode! 😊
+              </p>
+              <button
+                className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded hover:bg-green-700 dark:hover:bg-green-600"
+                onClick={() => setShowDarkPremiumModal(false)}
+              >
+                I’ll Go Get Coffee ☕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TOP BAR: Dark Mode Toggle + Guided Tour + User Info ───────────────── */}
         <div className="flex justify-between items-center mb-4">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={() => {
+              setDarkMode(!darkMode);
+              if (!darkMode) setShowDarkPremiumModal(true);
+            }}
+            className="text-xl bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 hover:bg-gray-300 p-2 rounded-full transition"
+            title="Toggle Dark Mode"
+          >
+            {darkMode ? '☀️' : '☾'}
+          </button>
+
           {hasJoined && (
             <button
               onClick={() => setRunTour(true)}
@@ -723,6 +782,63 @@ export default function ScrumPointingApp() {
             </div>
           )}
         </div>
+
+        {/* ─── REACTIONS & MOOD PANEL (Collapsible) ───────────────────────────────── */}
+        {hasJoined && (
+          <div className="mb-4">
+            <button
+              className="text-sm text-blue-600 dark:text-blue-300 underline"
+              onClick={() => setShowReactionsPanel(prev => !prev)}
+            >
+              {showReactionsPanel ? 'Hide Reactions & Moods' : 'Show Reactions & Moods'}
+            </button>
+            {showReactionsPanel && (
+              <div className="mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-3 shadow-sm">
+                {/* Mood Selector */}
+                <div className="mb-3">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select Your Current Mood:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+                      <button
+                        key={emoji}
+                        onClick={() => updateMood(emoji)}
+                        className={`text-2xl px-2 py-1 rounded-full transition ${
+                          myMood === emoji
+                            ? 'bg-blue-100 border border-blue-500'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                        title={label}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Emoji Reactions */}
+                <div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Send a Quick Emoji Reaction:
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {REACTION_EMOJIS.map((emoji, index) => (
+                      <button
+                        key={index}
+                        className="text-2xl hover:scale-125 transition"
+                        onClick={() => sendReaction(emoji)}
+                        title={`React with ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ─── STICKY CURRENT STORY BANNER ────────────────────────────────────────── */}
         {hasJoined && sessionActive && (
@@ -846,11 +962,11 @@ export default function ScrumPointingApp() {
                       <button
                         key={emoji}
                         onClick={() => setMyMood(emoji)}
-                        className={`text-2xl px-2 py-1 rounded-full ${
+                        className={`text-2xl px-2 py-1 rounded-full transition ${
                           myMood === emoji
                             ? 'bg-blue-100 border border-blue-500'
                             : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                        } transition`}
+                        }`}
                         title={label}
                       >
                         {emoji}
@@ -1358,7 +1474,7 @@ export default function ScrumPointingApp() {
                       <li>✅ Guided tour (react‐joyride) for each role, with skip option</li>
                       <li>✅ Personal vote history visible to developers</li>
                       <li>✅ Error handling and reconnect prompts when disconnected</li>
-                      <li>✅ Polished UI with Microanimations (input focus, button hover/press)</li>
+                      <li>✅ Polished UI with micro-animations (input focus, button hover/press)</li>
                     </ul>
                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                       Built with 💙 by <strong>HighWind</strong>
