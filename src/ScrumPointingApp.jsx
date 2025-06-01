@@ -55,6 +55,8 @@ export default function ScrumPointingApp() {
   const [selectedAvatar, setSelectedAvatar]   = useState(
     AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]
   );
+  const [myMood, setMyMood]                   = useState('😎');
+  const [rememberMe, setRememberMe]           = useState(false);
   const [hasJoined, setHasJoined]             = useState(false);
 
   const [storyTitle, setStoryTitle]           = useState('');
@@ -81,7 +83,6 @@ export default function ScrumPointingApp() {
   const [error, setError]                     = useState('');
   const [showSidebar, setShowSidebar]         = useState(false);
   const [showReactionsPanel, setShowReactionsPanel] = useState(false);
-  const [myMood, setMyMood]                   = useState('😎');
 
   // Timers & vote history
   const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -93,10 +94,6 @@ export default function ScrumPointingApp() {
 
   const [currentUserInfo, setCurrentUserInfo]   = useState({});
   const [showAbout, setShowAbout]               = useState(false);
-
-  // Dark mode toggle & premium modal
-  const [darkMode, setDarkMode] = useState(false);
-  const [showDarkPremiumModal, setShowDarkPremiumModal] = useState(false);
 
   // Offline check before starting a story
   const [showOfflineModal, setShowOfflineModal] = useState(false);
@@ -127,6 +124,24 @@ export default function ScrumPointingApp() {
     'b','a'
   ];
   const [inputSequence, setInputSequence] = useState([]);
+
+  // ─── EFFECT: Prefill from localStorage if "Remember Me" was checked ────────────
+  useEffect(() => {
+    const saved = localStorage.getItem('scrumUser');
+    if (saved) {
+      try {
+        const { nickname, room, role, selectedAvatar, myMood } = JSON.parse(saved);
+        setNickname(nickname || '');
+        setRoom(room || 'AFOSR Pega Developers');
+        setRole(role || 'Developer');
+        setSelectedAvatar(selectedAvatar || AVATAR_EMOJIS[0]);
+        setMyMood(myMood || '😎');
+        setRememberMe(true);
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, []);
 
   // ─── EFFECT: Build guided‐tour steps based on role ───────────────────────────
   const buildTourSteps = useCallback(() => {
@@ -468,6 +483,14 @@ export default function ScrumPointingApp() {
     setHasJoined(true);
     setGlobalStartTime(Date.now());
     setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
+
+    // Handle "Remember Me"
+    if (rememberMe) {
+      const toSave = { nickname, room, role, selectedAvatar, myMood };
+      localStorage.setItem('scrumUser', JSON.stringify(toSave));
+    } else {
+      localStorage.removeItem('scrumUser');
+    }
   };
 
   const castVote = (point) => {
@@ -561,6 +584,8 @@ export default function ScrumPointingApp() {
     setRoom('AFOSR Pega Developers');
     setRole('Developer');
     setSelectedAvatar(AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)]);
+    setMyMood('😎');
+    setRememberMe(false);
     setStoryTitle('');
     setStoryQueue([]);
     setSessionActive(false);
@@ -580,7 +605,6 @@ export default function ScrumPointingApp() {
     setConnectionStatus('connected');
     setError('');
     setShowSidebar(false);
-    setMyMood('😎');
     setSessionStartTime(null);
     setElapsedSeconds(0);
     setGlobalStartTime(null);
@@ -591,7 +615,6 @@ export default function ScrumPointingApp() {
     setShowReconnectModal(false);
     setMyVoteHistory([]);
     setKonamiUnlocked(false);
-    setShowDarkPremiumModal(false);
   };
 
   // ─── CALCULATE CONSENSUS ─────────────────────────────────────────────────────
@@ -625,29 +648,9 @@ export default function ScrumPointingApp() {
 
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
-    <div className={darkMode ? 'dark' : ''}>
+    <div>
       <div
-        className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 relative ${
-          konamiUnlocked
-            ? ''
-            : 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
-        }`}
-        style={
-          konamiUnlocked
-            ? {
-                background: `repeating-linear-gradient(
-                  45deg,
-                  red,
-                  orange,
-                  yellow,
-                  green,
-                  blue,
-                  indigo,
-                  violet
-                )`,
-              }
-            : {}
-        }
+        className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900`}
       >
         <Toaster position="top-right" reverseOrder={false} />
 
@@ -664,7 +667,7 @@ export default function ScrumPointingApp() {
           styles={{ options: { zIndex: 10000 } }}
           callback={(data) => {
             const { status } = data;
-            if ([ 'finished', 'skipped' ].includes(status)) {
+            if (['finished', 'skipped'].includes(status)) {
               setRunTour(false);
             }
           }}
@@ -690,41 +693,8 @@ export default function ScrumPointingApp() {
           </div>
         )}
 
-        {/* ─── DARK MODE PREMIUM MODAL ─────────────────────────────────────────────── */}
-        {showDarkPremiumModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center max-w-md">
-              <h2 className="text-xl font-semibold mb-3 dark:text-gray-200">
-                ☕ Dark Mode is a Premium Feature ☕
-              </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Enjoy Dark Mode only if you’re willing to <strong>run out for Starbucks</strong> before that big meeting. 
-                Otherwise… stay in Light Mode! 😊
-              </p>
-              <button
-                className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded hover:bg-green-700 dark:hover:bg-green-600"
-                onClick={() => setShowDarkPremiumModal(false)}
-              >
-                I’ll Go Get Coffee ☕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Top Bar: Dark Mode + Guided Tour + User Info ─────────────────────── */}
+        {/* ─── Top Bar: Guided Tour + User Info ───────────────────────────────────── */}
         <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => {
-              setDarkMode(!darkMode);
-              // Show the “premium” modal whenever they toggle ON
-              if (!darkMode) setShowDarkPremiumModal(true);
-            }}
-            className="text-xl bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 hover:bg-gray-300 p-2 rounded-full transition"
-            title="Toggle Dark Mode"
-          >
-            {darkMode ? '☀️' : '☾'}
-          </button>
-
           {hasJoined && (
             <button
               onClick={() => setRunTour(true)}
@@ -865,12 +835,52 @@ export default function ScrumPointingApp() {
                     (This will appear next to your name in‐session)
                   </p>
                 </div>
+
+                {/* Mood Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select Your Current Mood
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(MOOD_OPTIONS).map(([emoji, label]) => (
+                      <button
+                        key={emoji}
+                        onClick={() => setMyMood(emoji)}
+                        className={`text-2xl px-2 py-1 rounded-full ${
+                          myMood === emoji
+                            ? 'bg-blue-100 border border-blue-500'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                        } transition`}
+                        title={label}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Remember Me Toggle */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="remember-me-checkbox"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(prev => !prev)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="remember-me-checkbox"
+                    className="text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    Remember me
+                  </label>
+                </div>
               </div>
 
               {/* Join Button */}
               <button
                 id="tour-join-btn"
-                className="w-full bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition"
+                className="w-full bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transform hover:scale-105 transition"
                 onClick={join}
               >
                 Join Session
@@ -1327,18 +1337,28 @@ export default function ScrumPointingApp() {
                     <h2 className="text-lg font-semibold text-blue-700 dark:text-blue-300">
                       About This App
                     </h2>
-                    <ul className="list-disc list-inside text-gray-700 dark:text-gray-300">
-                      <li>✅ Real-time multiplayer pointing</li>
-                      <li>✅ Roles: Developer, Observer, Scrum Master, Product Owner</li>
-                      <li>✅ Live emoji reactions & mood status</li>
-                      <li>✅ Confetti & animated consensus</li>
-                      <li>✅ Revoting support</li>
-                      <li>✅ Session timer & story timer</li>
-                      <li>✅ Team chat + typing indicators</li>
-                      <li>✅ Responsive design for mobile & desktop</li>
-                      <li>✅ Avatar & emoji personalization</li>
-                        <li>✅ Seamlessly rejoin when session disconnect</li>
-                        <li>✅ Easter eggs and more React UI goodness</li>
+                    <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-1">
+                      <li>✅ Real‐time multiplayer pointing via Socket.IO</li>
+                      <li>✅ Roles: Developer, Observer, Product Owner, Scrum Master</li>
+                      <li>✅ Device detection (desktop 💻 vs. mobile 📱) with icons</li>
+                      <li>✅ Online/offline status & reconnection grace period</li>
+                      <li>✅ Mood selector and “randomly flying” emoji reactions</li>
+                      <li>✅ “haifetti” chat keyword triggers a confetti rain</li>
+                      <li>✅ Revote support + animated flip‐card vote reveal</li>
+                      <li>✅ Confetti celebration when votes are revealed</li>
+                      <li>✅ Scrum Master protection: only one per room + removal of offline users</li>
+                      <li>✅ Story queue management: add, remove, play next story</li>
+                      <li>✅ Sticky banner showing the current story on top</li>
+                      <li>✅ Chat with typing indicators and vote summary cards</li>
+                      <li>✅ Sidebar participants list with fixed‐height, scrollable container</li>
+                      <li>✅ Collapsible “Offline” section within the participants list</li>
+                      <li>✅ Remember Me toggle on the Join screen (localStorage)</li>
+                      <li>✅ Responsive design for desktop and mobile devices</li>
+                      <li>✅ Konami code Easter egg that unlocks a rainbow background</li>
+                      <li>✅ Guided tour (react‐joyride) for each role, with skip option</li>
+                      <li>✅ Personal vote history visible to developers</li>
+                      <li>✅ Error handling and reconnect prompts when disconnected</li>
+                      <li>✅ Polished UI with Microanimations (input focus, button hover/press)</li>
                     </ul>
                     <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                       Built with 💙 by <strong>HighWind</strong>
