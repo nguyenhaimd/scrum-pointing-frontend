@@ -249,6 +249,7 @@ export default function ScrumPointingApp() {
         const nextSeq = [...prev, key].slice(-KONAMI_SEQUENCE.length);
         if (nextSeq.join(',') === KONAMI_SEQUENCE.join(',')) {
           setKonamiUnlocked(true);
+          // Keep it unlocked permanently; do not revert on close.
         }
         return nextSeq;
       });
@@ -674,22 +675,13 @@ export default function ScrumPointingApp() {
       <div
         className={`min-h-screen p-4 font-sans text-gray-800 dark:text-gray-100 ${
           konamiUnlocked
-            ? ''
+            ? '' 
             : 'bg-gradient-to-br from-sky-100 to-blue-200 dark:from-gray-800 dark:to-gray-900'
         }`}
         style={
           konamiUnlocked
             ? {
-                background: `repeating-linear-gradient(
-                  45deg,
-                  red,
-                  orange,
-                  yellow,
-                  green,
-                  blue,
-                  indigo,
-                  violet
-                )`,
+                background: 'linear-gradient(135deg, #070047 0%, #211A50 50%, #BD0EFF 100%)'
               }
             : {}
         }
@@ -698,6 +690,24 @@ export default function ScrumPointingApp() {
 
         {/* ─── TOP-LEVEL CONFETTI (for “haifetti” or votes) ───────────────────────── */}
         {showConfetti && <Confetti width={width} height={height} />}
+
+        {/* ─── FLYING EMOJI REACTIONS ──────────────────────────────────────────────── */}
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          {reactions.map(r => (
+            <motion.div
+              key={r.id}
+              className="absolute text-center"
+              style={{ left: `${r.x}%`, top: `${r.startY}%` }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, y: `-${r.startY + 10}vh`, scale: 1.2 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+            >
+              <div className="text-4xl">{r.emoji}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
+            </motion.div>
+          ))}
+        </div>
 
         {/* ─── GUIDED TOUR ───────────────────────────────────────────────────────── */}
         <Joyride
@@ -723,13 +733,13 @@ export default function ScrumPointingApp() {
                 🎉 Konami Unlocked! 🎉
               </h2>
               <p className="mb-4 text-gray-800 dark:text-gray-200">
-                The Rainbow Theme is now active! Enjoy the colors. 🌈
+                Gaming Mode activated! Enjoy the new background. 🌌
               </p>
               <button
                 className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
-                onClick={() => setKonamiUnlocked(false)}
+                onClick={() => {/* Do not clear konamiUnlocked; keep gaming background */}}
               >
-                Close
+                OK
               </button>
             </div>
           </div>
@@ -1487,7 +1497,7 @@ export default function ScrumPointingApp() {
                       <li>✅ Collapsible “Offline” section within the participants list</li>
                       <li>✅ Remember Me toggle on the Join screen (localStorage)</li>
                       <li>✅ Responsive design for desktop and mobile devices</li>
-                      <li>✅ Konami code Easter egg that unlocks a rainbow background</li>
+                      <li>✅ Konami code Easter egg that unlocks a gaming‐themed background</li>
                       <li>✅ Guided tour (react‐joyride) for each role, with skip option</li>
                       <li>✅ Personal vote history visible to developers</li>
                       <li>✅ Error handling and reconnect prompts when disconnected</li>
