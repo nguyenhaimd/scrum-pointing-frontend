@@ -674,28 +674,35 @@ export default function ScrumPointingApp() {
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className={darkMode ? 'dark relative' : 'relative'}>
-      {/* If Konami unlocked, render a retro pixel‐grid + scanlines background behind everything */}
+      {/* If Konami unlocked, render a fun rainbow gradient background behind everything */}
       {konamiUnlocked && (
         <div className="absolute inset-0 z-0 overflow-hidden">
-          {/* 
-            1) Pixel Grid: small green squares every 10×10 px 
-            2) Neon scanlines: very faint pink horizontal stripes 
-          */}
           <div
             className="absolute inset-0"
             style={{
-              backgroundColor: '#000',
-              backgroundImage: `
-                /* tiny green pixel grid */
-                linear-gradient(90deg, rgba(0,255,0,0.2) 1px, transparent 1px),
-                linear-gradient(0deg, rgba(0,255,0,0.2) 1px, transparent 1px),
-                /* neon pink scanlines */
-                linear-gradient(0deg, rgba(255,0,128,0.05) 1px, transparent 1px)
-              `,
-              backgroundSize: '10px 10px, 10px 10px, 100% 2px',
-              backgroundBlendMode: 'overlay'
+              background: `linear-gradient(45deg,
+                #ff0000,  /* red */
+                #ff7f00,  /* orange */
+                #ffff00,  /* yellow */
+                #00ff00,  /* green */
+                #0000ff,  /* blue */
+                #4b0082,  /* indigo */
+                #8b00ff   /* violet */
+              )`,
+              backgroundSize: '600% 600%',
+              animation: 'rainbowBackground 10s ease infinite',
             }}
           />
+          {/* Keyframes for subtle color shift */}
+          <style>
+            {`
+              @keyframes rainbowBackground {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+              }
+            `}
+          </style>
         </div>
       )}
 
@@ -753,7 +760,7 @@ export default function ScrumPointingApp() {
                 🎉 Konami Unlocked! 🎉
               </h2>
               <p className="mb-4 text-gray-800 dark:text-gray-200">
-                Gaming Mode activated! Enjoy the retro pixel‐grid background. 🌌
+                Rainbow Mode activated! Enjoy the colorful background. 🌈
               </p>
               <button
                 className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-700 dark:hover:bg-purple-600"
@@ -1518,7 +1525,7 @@ export default function ScrumPointingApp() {
                       <li>✅ Collapsible “Offline” section within the participants list</li>
                       <li>✅ Remember Me toggle on the Join screen (localStorage)</li>
                       <li>✅ Responsive design for desktop and mobile devices</li>
-                      <li>✅ Konami code Easter egg that unlocks a gaming‐themed background</li>
+                      <li>✅ Konami code Easter egg that unlocks a colorful rainbow background</li>
                       <li>✅ Guided tour (react‐joyride) for each role, with skip option</li>
                       <li>✅ Personal vote history visible to developers</li>
                       <li>✅ Error handling and reconnect prompts when disconnected</li>
