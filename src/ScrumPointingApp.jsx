@@ -101,8 +101,8 @@ export default function ScrumPointingApp() {
 
   // Offline check before starting a story
   const [showOfflineModal, setShowOfflineModal] = useState(false);
-  const [offlineList, setOfflineList] = useState([]);
-  const [pendingStart, setPendingStart] = useState(null);
+  const [offlineList, setOfflineList]           = useState([]);
+  const [pendingStart, setPendingStart]         = useState(null);
 
   // Reconnection prompt
   const [showReconnectModal, setShowReconnectModal] = useState(false);
@@ -393,6 +393,7 @@ export default function ScrumPointingApp() {
 
     socket.on('connect', () => {
       setConnectionStatus('connected');
+      setShowReconnectModal(false);
     });
 
     socket.on('disconnect', () => {
@@ -1512,7 +1513,7 @@ export default function ScrumPointingApp() {
                       <li>✅ Real‐time multiplayer pointing via Socket.IO</li>
                       <li>✅ Roles: Developer, Observer, Product Owner, Scrum Master</li>
                       <li>✅ Device detection (desktop 💻 vs. mobile 📱) with icons</li>
-                      <li>✅ Online/offline status & reconnection grace period</li>
+                      <li>✅ Online/offline status & reconnection prompt (no grace period)</li>
                       <li>✅ Mood selector and “randomly flying” emoji reactions</li>
                       <li>✅ “haifetti” chat keyword triggers a confetti rain</li>
                       <li>✅ Revote support + animated flip‐card vote reveal</li>
