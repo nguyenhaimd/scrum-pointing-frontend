@@ -130,7 +130,9 @@ export default function ScrumPointingApp() {
   ];
   const [inputSequence, setInputSequence] = useState([]);
 
+  //
   // ─── EFFECT: Prefill from localStorage if "Remember Me" was checked ────────────
+  //
   useEffect(() => {
     const saved = localStorage.getItem('scrumUser');
     if (saved) {
@@ -148,7 +150,25 @@ export default function ScrumPointingApp() {
     }
   }, []);
 
+  //
+  // ─── EFFECT: Visibility change to detect background→foreground on mobile ───────
+  //
+  useEffect(() => {
+    const handleVisibility = () => {
+      // If page becomes visible again, but socket is still disconnected,
+      // force the reconnect modal to show.
+      if (document.visibilityState === 'visible' && socket.disconnected) {
+        setConnectionStatus('disconnected');
+        setShowReconnectModal(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  //
   // ─── EFFECT: Build guided‐tour steps based on role ───────────────────────────
+  //
   const buildTourSteps = useCallback(() => {
     if (!hasJoined) return [];
     if (isScrumMaster) {
@@ -242,7 +262,9 @@ export default function ScrumPointingApp() {
     setTourSteps(buildTourSteps());
   }, [buildTourSteps]);
 
+  //
   // ─── EFFECT: KONAMI CODE LISTENER ─────────────────────────────────────────────
+  //
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key;
@@ -259,7 +281,9 @@ export default function ScrumPointingApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  //
   // ─── EFFECT: Session Timer ────────────────────────────────────────────────────
+  //
   useEffect(() => {
     let timer;
     if (sessionStartTime) {
@@ -272,7 +296,9 @@ export default function ScrumPointingApp() {
     return () => clearInterval(timer);
   }, [sessionStartTime]);
 
+  //
   // ─── EFFECT: Global Timer ─────────────────────────────────────────────────────
+  //
   useEffect(() => {
     let timer;
     if (globalStartTime) {
@@ -283,7 +309,9 @@ export default function ScrumPointingApp() {
     return () => clearInterval(timer);
   }, [globalStartTime]);
 
+  //
   // ─── SOCKET.IO LISTENERS ──────────────────────────────────────────────────────
+  //
   useEffect(() => {
     // Update story queue
     socket.on('updateStoryQueue', (queue) => {
@@ -419,14 +447,18 @@ export default function ScrumPointingApp() {
     };
   }, [nickname]);
 
+  //
   // ─── SCROLL CHAT TO BOTTOM ON NEW MESSAGE ─────────────────────────────────────
+  //
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
+  //
   // ─── CHECK CONNECTION EVERY 10s ───────────────────────────────────────────────
+  //
   useEffect(() => {
     const checkConnection = () => {
       if (socket.disconnected) {
@@ -438,7 +470,9 @@ export default function ScrumPointingApp() {
     return () => clearInterval(interval);
   }, []);
 
+  //
   // ─── TYPING & CHAT HANDLERS ───────────────────────────────────────────────────
+  //
   const sendChatMessage = () => {
     const text = chatInput.trim();
     if (!text) return;
@@ -457,7 +491,9 @@ export default function ScrumPointingApp() {
     socket.emit('userTyping');
   };
 
+  //
   // ─── EMOJI REACTIONS: spawn locally + emit ─────────────────────────────────
+  //
   const sendReaction = (emoji) => {
     // Locally spawn a flying emoji right away:
     const id = Date.now() + Math.random();
@@ -481,7 +517,9 @@ export default function ScrumPointingApp() {
     socket.emit('updateMood', { nickname, emoji });
   };
 
+  //
   // ─── JOIN / VOTE / SESSION HANDLERS ────────────────────────────────────────────
+  //
   const join = () => {
     setError('');
     if (!nickname.trim() || !room.trim()) {
@@ -643,7 +681,9 @@ export default function ScrumPointingApp() {
     setShowDarkPremiumModal(false);
   };
 
+  //
   // ─── CALCULATE CONSENSUS ─────────────────────────────────────────────────────
+  //
   const totalDevelopers = participants.filter(p => participantRoles[p] === 'Developer').length;
   const votesCast = participants.filter(
     p => participantRoles[p] === 'Developer' && votes[p] !== null
@@ -665,14 +705,18 @@ export default function ScrumPointingApp() {
   };
   const consensusPoints = votesRevealed ? getConsensus() : [];
 
+  //
   // ─── FORMAT TIME ─────────────────────────────────────────────────────────────
+  //
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  //
   // ─── JSX RENDER ───────────────────────────────────────────────────────────────
+  //
   return (
     <div className={darkMode ? 'dark relative' : 'relative'}>
       {/* If Konami unlocked, render a fun rainbow gradient background behind everything */}
@@ -1371,7 +1415,7 @@ export default function ScrumPointingApp() {
                                     .filter(
                                       v => v.point !== null && v.point !== undefined && v.point !== ''
                                     )
-                                    .map((v, idx) => (
+                                    .map((v, idx) => (  
                                       <li key={idx}>
                                         {v.avatar} {v.name} — <strong>{v.point}</strong>
                                       </li>
