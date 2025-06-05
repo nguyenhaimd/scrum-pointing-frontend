@@ -421,7 +421,6 @@ export default function ScrumPointingApp() {
 
     socket.on('connect', () => {
       setConnectionStatus('connected');
-      setShowReconnectModal(false);
     });
 
     socket.on('disconnect', () => {
@@ -804,7 +803,7 @@ export default function ScrumPointingApp() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, y: `-${r.startY + 10}vh`, scale: 1.2 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 2 }}
+              transition={{ duration: 6 }}
             >
               <div className="text-4xl">{r.emoji}</div>
               <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
