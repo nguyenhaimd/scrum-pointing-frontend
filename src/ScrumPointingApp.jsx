@@ -361,7 +361,7 @@ export default function ScrumPointingApp() {
       ]);
       setTimeout(() => {
         setReactions(prev => prev.filter(r => r.id !== id));
-      }, 1200);
+      }, 2000); // keep it on screen longer before removal
     });
 
     socket.on('startSession', (title) => {
@@ -503,10 +503,10 @@ export default function ScrumPointingApp() {
       ...prev,
       { id, sender: nickname, emoji, x: randomX, startY: randomY }
     ]);
-    // Remove it from local state after ~1.2 s:
+    // Remove it from local state after ~2 s:
     setTimeout(() => {
       setReactions(prev => prev.filter(r => r.id !== id));
-    }, 1200);
+    }, 2000);
 
     // Still emit to the server so everyone else sees it too:
     socket.emit('emojiReaction', { sender: nickname, emoji });
@@ -760,6 +760,37 @@ export default function ScrumPointingApp() {
       >
         <Toaster position="top-right" reverseOrder={false} />
 
+        {/* ─── RECONNECT MODAL ───────────────────────────────────────────────────────── */}
+        {hasJoined && showReconnectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-11/12 max-w-sm text-center">
+              <h2 className="text-lg font-semibold mb-3 dark:text-gray-100">
+                You’ve been disconnected
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Tap below to rejoin the session once internet is restored.
+              </p>
+              <button
+                className="bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-700 dark:hover:bg-blue-600"
+                onClick={() => {
+                  socket.emit('join', {
+                    nickname,
+                    room,
+                    role,
+                    avatar: selectedAvatar,
+                    emoji: myMood,
+                    device: getDeviceType(),
+                  });
+                  setShowReconnectModal(false);
+                  toast.success('🔄 Attempting to reconnect...');
+                }}
+              >
+                Rejoin Now
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ─── TOP-LEVEL CONFETTI (for “haifetti” or votes) ───────────────────────── */}
         {showConfetti && <Confetti width={width} height={height} />}
 
@@ -773,7 +804,7 @@ export default function ScrumPointingApp() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, y: `-${r.startY + 10}vh`, scale: 1.2 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 2 }}
             >
               <div className="text-4xl">{r.emoji}</div>
               <div className="text-xs text-gray-600 dark:text-gray-300">{r.sender}</div>
@@ -1415,7 +1446,7 @@ export default function ScrumPointingApp() {
                                     .filter(
                                       v => v.point !== null && v.point !== undefined && v.point !== ''
                                     )
-                                    .map((v, idx) => (  
+                                    .map((v, idx) => (
                                       <li key={idx}>
                                         {v.avatar} {v.name} — <strong>{v.point}</strong>
                                       </li>
