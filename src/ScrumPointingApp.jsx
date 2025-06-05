@@ -155,7 +155,7 @@ export default function ScrumPointingApp() {
   //
   useEffect(() => {
     const handleVisibility = () => {
-      // If page becomes visible again, but socket is still disconnected,
+      // If page becomes visible again but socket is still disconnected,
       // force the reconnect modal to show.
       if (document.visibilityState === 'visible' && socket.disconnected) {
         setConnectionStatus('disconnected');
@@ -351,7 +351,6 @@ export default function ScrumPointingApp() {
 
     // Incoming emoji reactions
     socket.on('emojiReaction', ({ sender, emoji }) => {
-      // Spawn a flying emoji marker on everyone’s screen
       const id = Date.now() + Math.random();
       const randomX = Math.random() * 80 + 10; // 10%–90% across screen
       const randomY = Math.random() * 10 + 80; // start near bottom
@@ -361,7 +360,7 @@ export default function ScrumPointingApp() {
       ]);
       setTimeout(() => {
         setReactions(prev => prev.filter(r => r.id !== id));
-      }, 2000); // keep it on screen longer before removal
+      }, 2000);
     });
 
     socket.on('startSession', (title) => {
@@ -405,7 +404,7 @@ export default function ScrumPointingApp() {
     socket.on('teamChat', (msg) => {
       setChatMessages(prev => {
         if (msg.type === 'voteSummary') {
-          // collapse previous summaries
+          // collapse previous vote summaries
           const collapsed = prev.map((m) => {
             if (m.type === 'voteSummary') {
               return { ...m, summary: { ...m.summary, expand: false } };
@@ -421,11 +420,18 @@ export default function ScrumPointingApp() {
 
     socket.on('connect', () => {
       setConnectionStatus('connected');
+      // do NOT automatically hide reconnect modal here
     });
 
     socket.on('disconnect', () => {
       setConnectionStatus('disconnected');
       setShowReconnectModal(true);
+    });
+
+    // ─── Listen for “haifetti” broadcast ───────────────────────────────────
+    socket.on('haifetti', () => {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 10000);
     });
 
     return () => {
@@ -443,6 +449,7 @@ export default function ScrumPointingApp() {
       socket.off('teamChat');
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('haifetti');
     };
   }, [nickname]);
 
@@ -476,10 +483,9 @@ export default function ScrumPointingApp() {
     const text = chatInput.trim();
     if (!text) return;
 
-    // If user typed "haifetti" (case-insensitive), trigger confetti at top level
+    // If user typed "haifetti", inform the server so everyone sees it
     if (text.toLowerCase() === 'haifetti') {
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 10000);
+      socket.emit('haifetti');
     }
 
     socket.emit('teamChat', { room, sender: nickname, text });
@@ -502,12 +508,10 @@ export default function ScrumPointingApp() {
       ...prev,
       { id, sender: nickname, emoji, x: randomX, startY: randomY }
     ]);
-    // Remove it from local state after ~2 s:
     setTimeout(() => {
       setReactions(prev => prev.filter(r => r.id !== id));
     }, 2000);
 
-    // Still emit to the server so everyone else sees it too:
     socket.emit('emojiReaction', { sender: nickname, emoji });
   };
 
@@ -544,7 +548,6 @@ export default function ScrumPointingApp() {
     setGlobalStartTime(Date.now());
     setCurrentUserInfo({ nickname, avatar: selectedAvatar, role });
 
-    // Handle "Remember Me"
     if (rememberMe) {
       const toSave = { nickname, room, role, selectedAvatar, myMood };
       localStorage.setItem('scrumUser', JSON.stringify(toSave));
@@ -597,6 +600,7 @@ export default function ScrumPointingApp() {
 
   const endSession = () => socket.emit('endSession');
 
+  // Basic “startSession” that tells server and removes from queue
   const startSession = (title, index) => {
     socket.emit('startSession', { title, room });
     setStoryQueue(prev => prev.filter((_, i) => i !== index));
@@ -610,10 +614,15 @@ export default function ScrumPointingApp() {
     setSessionStartTime(Date.now());
   };
 
+  //
+  // ─── WHEN SCRUM MASTER CLICKS ▶️ ─────────────────────────────────────────────
+  //
   const handleStartSession = (title, index) => {
+    // Find any offline developers
     const offline = participants
       .filter(p => participantRoles[p] === 'Developer')
       .filter(p => !participantConnections[p]);
+
     if (offline.length) {
       setOfflineList(offline);
       setPendingStart({ title, index });
@@ -638,7 +647,6 @@ export default function ScrumPointingApp() {
 
   const logout = () => {
     socket.emit('logout');
-    // Reset all local state back to initial
     setHasJoined(false);
     setNickname('');
     setRoom('AFOSR Pega Developers');
@@ -674,7 +682,6 @@ export default function ScrumPointingApp() {
     setShowAbout(false);
     setShowReconnectModal(false);
     setMyVoteHistory([]);
-    // Don’t reset konamiUnlocked so background persists
     setShowKonamiModal(false);
     setDarkMode(false);
     setShowDarkPremiumModal(false);
@@ -718,7 +725,7 @@ export default function ScrumPointingApp() {
   //
   return (
     <div className={darkMode ? 'dark relative' : 'relative'}>
-      {/* If Konami unlocked, render a fun rainbow gradient background behind everything */}
+      {/* If Konami unlocked, rainbow gradient background */}
       {konamiUnlocked && (
         <div className="absolute inset-0 z-0 overflow-hidden">
           <div
@@ -737,7 +744,6 @@ export default function ScrumPointingApp() {
               animation: 'rainbowBackground 10s ease infinite',
             }}
           />
-          {/* Keyframes for subtle color shift */}
           <style>
             {`
               @keyframes rainbowBackground {
@@ -786,6 +792,42 @@ export default function ScrumPointingApp() {
               >
                 Rejoin Now
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── OFFLINE USERS MODAL (When Scrum Master clicks ▶️ but devs offline) ─────── */}
+        {hasJoined && showOfflineModal && isScrumMaster && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-11/12 text-center">
+              <h3 className="text-lg font-semibold text-red-600 dark:text-red-300 mb-2">
+                ⚠️ Cannot Start Pointing
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                The following developer{offlineList.length > 1 ? 's are' : ' is'} offline:
+              </p>
+              <ul className="list-disc list-inside text-gray-800 dark:text-gray-200 mb-4 text-left">
+                {offlineList.map(name => (
+                  <li key={name}>{name}</li>
+                ))}
+              </ul>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => {
+                    setShowOfflineModal(false);
+                    setPendingStart(null);
+                  }}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStartAnyway}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Start Anyway
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -856,8 +898,8 @@ export default function ScrumPointingApp() {
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
                 Dark mode is only for team members willing to go get coffee at the last minute
-                before an important meeting on your first day on the job with a coworker that
-                promised they will speak up on your behalf if things go astray.
+                before an important meeting on your first day on the job with a coworker who
+                promised they would speak up on your behalf if things went astray.
               </p>
               <button
                 className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded hover:bg-green-700 dark:hover:bg-green-600"
